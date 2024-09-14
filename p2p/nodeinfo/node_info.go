@@ -1,4 +1,4 @@
-package p2p
+package nodeinfo
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
 	cmtstrings "github.com/cometbft/cometbft/internal/strings"
 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
+	"github.com/cometbft/cometbft/p2p/key"
+	na "github.com/cometbft/cometbft/p2p/netaddress"
 	"github.com/cometbft/cometbft/version"
 )
 
@@ -26,18 +28,8 @@ func MaxNodeInfoSize() int {
 // NodeInfo exposes basic info of a node
 // and determines if we're compatible.
 type NodeInfo interface {
-	ID() ID
-	nodeInfoAddress
-	nodeInfoTransport
-}
-
-type nodeInfoAddress interface {
-	NetAddress() (*NetAddress, error)
-}
-
-// nodeInfoTransport validates a nodeInfo and checks
-// our compatibility with it. It's for use in the handshake.
-type nodeInfoTransport interface {
+	ID() key.ID
+	NetAddress() (*na.NetAddress, error)
 	Validate() error
 	CompatibleWith(other NodeInfo) error
 }
@@ -80,7 +72,7 @@ type DefaultNodeInfo struct {
 
 	// Authenticate
 	// TODO: replace with NetAddress
-	DefaultNodeID ID     `json:"id"`          // authenticated identifier
+	DefaultNodeID key.ID `json:"id"`          // authenticated identifier
 	ListenAddr    string `json:"listen_addr"` // accepting incoming
 
 	// Check compatibility.
@@ -101,7 +93,7 @@ type DefaultNodeInfoOther struct {
 }
 
 // ID returns the node's peer ID.
-func (info DefaultNodeInfo) ID() ID {
+func (info DefaultNodeInfo) ID() key.ID {
 	return info.DefaultNodeID
 }
 
@@ -122,7 +114,7 @@ func (info DefaultNodeInfo) Validate() error {
 	// ID is already validated.
 
 	// Validate ListenAddr.
-	_, err := NewNetAddressString(IDAddressString(info.ID(), info.ListenAddr))
+	_, err := na.NewNetAddressString(na.IDAddressString(info.ID(), info.ListenAddr))
 	if err != nil {
 		return err
 	}
@@ -227,9 +219,9 @@ OUTER_LOOP:
 // it includes the authenticated peer ID and the self-reported
 // ListenAddr. Note that the ListenAddr is not authenticated and
 // may not match that address actually dialed if its an outbound peer.
-func (info DefaultNodeInfo) NetAddress() (*NetAddress, error) {
-	idAddr := IDAddressString(info.ID(), info.ListenAddr)
-	return NewNetAddressString(idAddr)
+func (info DefaultNodeInfo) NetAddress() (*na.NetAddress, error) {
+	idAddr := na.IDAddressString(info.ID(), info.ListenAddr)
+	return na.NewNetAddressString(idAddr)
 }
 
 func (info DefaultNodeInfo) HasChannel(chID byte) bool {
@@ -269,7 +261,7 @@ func DefaultNodeInfoFromToProto(pb *tmp2p.DefaultNodeInfo) (DefaultNodeInfo, err
 			Block: pb.ProtocolVersion.Block,
 			App:   pb.ProtocolVersion.App,
 		},
-		DefaultNodeID: ID(pb.DefaultNodeID),
+		DefaultNodeID: key.ID(pb.DefaultNodeID),
 		ListenAddr:    pb.ListenAddr,
 		Network:       pb.Network,
 		Version:       pb.Version,
