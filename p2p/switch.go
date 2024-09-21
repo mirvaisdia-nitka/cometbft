@@ -679,7 +679,6 @@ func (sw *Switch) acceptRoutine() {
 			break
 		}
 
-
 		handshake()
 
 		p := wrapPeer(conn, nodeInfo, cfg, &addr)
@@ -853,92 +852,4 @@ func (sw *Switch) addPeer(p Peer) error {
 	sw.Logger.Debug("Added peer", "peer", p)
 
 	return nil
-}
-
-func handshake(ourNodeInfo ni.NodeInfo, c net.Conn, handshakeTimeout time.Duration) (ni.NodeInfo, error) {
-	nodeInfo, err = ourNodeInfo.Handshake(secretConn, mt.handshakeTimeout)
-		if err != nil {
-			return nil, nil, ErrRejected{
-				conn:          c,
-				err:           fmt.Errorf("handshake failed: %w", err),
-				isAuthFailure: true,
-			}
-		}
-
-		if err := nodeInfo.Validate(); err != nil {
-			return nil, nil, ErrRejected{
-				conn:              c,
-				err:               err,
-				isNodeInfoInvalid: true,
-			}
-		}
-
-		// Ensure connection key matches self reported key.
-		if connID != nodeInfo.ID() {
-			return nil, nil, ErrRejected{
-				conn: c,
-				id:   connID,
-				err: fmt.Errorf(
-					"conn.ID (%v) NodeInfo.ID (%v) mismatch",
-					connID,
-					nodeInfo.ID(),
-				),
-				isAuthFailure: true,
-			}
-		}
-
-		// Reject self.
-		if mt.nodeInfo.ID() == nodeInfo.ID() {
-			return nil, nil, ErrRejected{
-				addr:   *na.NewNetAddress(nodeInfo.ID(), c.RemoteAddr()),
-				conn:   c,
-				id:     nodeInfo.ID(),
-				isSelf: true,
-			}
-		}
-
-		if err := mt.nodeInfo.CompatibleWith(nodeInfo); err != nil {
-			return nil, nil, ErrRejected{
-				conn:           c,
-				err:            err,
-				id:             nodeInfo.ID(),
-				isIncompatible: true,
-			}
-		}
-}
-
-
-func (ourNodeInfo DefaultNodeInfo) Handshake(c net.Conn, timeout time.Duration) (peerNodeInfo NodeInfo, err error) {
-	if err := c.SetDeadline(time.Now().Add(timeout)); err != nil {
-		return nil, err
-	}
-
-	var (
-		errc           = make(chan error, 2)
-		pbpeerNodeInfo tmp2p.DefaultNodeInfo
-	)
-
-	go func(errc chan<- error, c net.Conn) {
-		_, err := protoio.NewDelimitedWriter(c).WriteMsg(ourNodeInfo.ToProto())
-		errc <- err
-	}(errc, c)
-	go func(errc chan<- error, c net.Conn) {
-		protoReader := protoio.NewDelimitedReader(c, MaxNodeInfoSize())
-		_, err := protoReader.ReadMsg(&pbpeerNodeInfo)
-		errc <- err
-	}(errc, c)
-
-	for i := 0; i < cap(errc); i++ {
-		err := <-errc
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	peerNodeInfo, err = DefaultNodeInfoFromToProto(&pbpeerNodeInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return peerNodeInfo, c.SetDeadline(time.Time{})
 }

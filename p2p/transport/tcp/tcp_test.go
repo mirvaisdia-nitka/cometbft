@@ -252,7 +252,6 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 	var (
 		fastNodePV   = ed25519.GenPrivKey()
-		fastNodeInfo = testNodeInfo(key.PubKeyToID(fastNodePV.PubKey()), "fastnode")
 		errc         = make(chan error)
 		fastc        = make(chan struct{})
 		slowc        = make(chan struct{})
@@ -312,7 +311,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 		)
 		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
-		_, err := dialer.Dial(*addr, peerConfig{})
+		_, err := dialer.Dial(*addr)
 		if err != nil {
 			errc <- err
 			return
@@ -327,7 +326,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 		t.Logf("connection failed: %v", err)
 	}
 
-	p, err := mt.Accept(peerConfig{})
+	_, _, err := mt.Accept()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +341,6 @@ func TestTransportMultiplexValidateNodeInfo(t *testing.T) {
 		var (
 			pv     = ed25519.GenPrivKey()
 			dialer = newMultiplexTransport(
-				testNodeInfo(key.PubKeyToID(pv.PubKey()), ""), // Should not be empty
 				key.NodeKey{
 					PrivKey: pv,
 				},
@@ -351,7 +349,7 @@ func TestTransportMultiplexValidateNodeInfo(t *testing.T) {
 
 		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
-		_, err := dialer.Dial(*addr, peerConfig{})
+		_, err := dialer.Dial(*addr)
 		if err != nil {
 			errc <- err
 			return
@@ -364,7 +362,7 @@ func TestTransportMultiplexValidateNodeInfo(t *testing.T) {
 		t.Errorf("connection failed: %v", err)
 	}
 
-	_, err := mt.Accept(peerConfig{})
+	_,_, err := mt.Accept()
 	if e, ok := err.(ErrRejected); ok {
 		if !e.IsNodeInfoInvalid() {
 			t.Errorf("expected NodeInfo to be invalid, got %v", err)
@@ -381,16 +379,13 @@ func TestTransportMultiplexRejectMissmatchID(t *testing.T) {
 
 	go func() {
 		dialer := newMultiplexTransport(
-			testNodeInfo(
-				key.PubKeyToID(ed25519.GenPrivKey().PubKey()), "dialer",
-			),
 			key.NodeKey{
 				PrivKey: ed25519.GenPrivKey(),
 			},
 		)
 		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
-		_, err := dialer.Dial(*addr, peerConfig{})
+		_, err := dialer.Dial(*addr)
 		if err != nil {
 			errc <- err
 			return
@@ -403,7 +398,7 @@ func TestTransportMultiplexRejectMissmatchID(t *testing.T) {
 		t.Errorf("connection failed: %v", err)
 	}
 
-	_, err := mt.Accept(peerConfig{})
+	_, err := mt.Accept()
 	if e, ok := err.(ErrRejected); ok {
 		if !e.IsAuthFailure() {
 			t.Errorf("expected auth failure, got %v", e)
@@ -419,7 +414,6 @@ func TestTransportMultiplexDialRejectWrongID(t *testing.T) {
 	var (
 		pv     = ed25519.GenPrivKey()
 		dialer = newMultiplexTransport(
-			testNodeInfo(key.PubKeyToID(pv.PubKey()), ""), // Should not be empty
 			key.NodeKey{
 				PrivKey: pv,
 			},
@@ -429,7 +423,7 @@ func TestTransportMultiplexDialRejectWrongID(t *testing.T) {
 	wrongID := key.PubKeyToID(ed25519.GenPrivKey().PubKey())
 	addr := na.NewNetAddress(wrongID, mt.listener.Addr())
 
-	_, err := dialer.Dial(*addr, peerConfig{})
+	_, err := dialer.Dial(*addr)
 	if err != nil {
 		t.Logf("connection failed: %v", err)
 		if e, ok := err.(ErrRejected); ok {
@@ -451,7 +445,6 @@ func TestTransportMultiplexRejectIncompatible(t *testing.T) {
 		var (
 			pv     = ed25519.GenPrivKey()
 			dialer = newMultiplexTransport(
-				testNodeInfoWithNetwork(key.PubKeyToID(pv.PubKey()), "dialer", "incompatible-network"),
 				key.NodeKey{
 					PrivKey: pv,
 				},
@@ -459,7 +452,7 @@ func TestTransportMultiplexRejectIncompatible(t *testing.T) {
 		)
 		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
-		_, err := dialer.Dial(*addr, peerConfig{})
+		_, err := dialer.Dial(*addr)
 		if err != nil {
 			errc <- err
 			return
@@ -468,7 +461,7 @@ func TestTransportMultiplexRejectIncompatible(t *testing.T) {
 		close(errc)
 	}()
 
-	_, err := mt.Accept(peerConfig{})
+	_, err := mt.Accept()
 	if e, ok := err.(ErrRejected); ok {
 		if !e.IsIncompatible() {
 			t.Errorf("expected to reject incompatible, got %v", e)
@@ -486,7 +479,7 @@ func TestTransportMultiplexRejectSelf(t *testing.T) {
 	go func() {
 		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
-		_, err := mt.Dial(*addr, peerConfig{})
+		_, err := mt.Dial(*addr)
 		if err != nil {
 			errc <- err
 			return
@@ -507,7 +500,7 @@ func TestTransportMultiplexRejectSelf(t *testing.T) {
 		t.Errorf("expected connection failure")
 	}
 
-	_, err := mt.Accept(peerConfig{})
+	_,_, err := mt.Accept()
 	if err, ok := err.(ErrRejected); ok {
 		if !err.IsSelf() {
 			t.Errorf("expected to reject self, got: %v", err)
@@ -570,13 +563,13 @@ func TestTransportHandshake(t *testing.T) {
 			// ni   DefaultNodeInfo
 			var pbni tmp2p.DefaultNodeInfo
 
-			protoReader := protoio.NewDelimitedReader(c, MaxNodeInfoSize())
+			protoReader := protoio.NewDelimitedReader(c, ni.MaxNodeInfoSize())
 			_, err := protoReader.ReadMsg(&pbni)
 			if err != nil {
 				t.Error(err)
 			}
 
-			_, err = DefaultNodeInfoFromToProto(&pbni)
+			_, err = ni.DefaultNodeInfoFromToProto(&pbni)
 			if err != nil {
 				t.Error(err)
 			}

@@ -137,7 +137,6 @@ func NewMultiplexTransport(
 		filterTimeout:    defaultFilterTimeout,
 		handshakeTimeout: defaultHandshakeTimeout,
 		mConfig:          mConfig,
-		nodeInfo:         nodeInfo,
 		nodeKey:          nodeKey,
 		conns:            NewConnSet(),
 		resolver:         net.DefaultResolver,
