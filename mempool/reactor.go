@@ -172,12 +172,16 @@ func (memR *Reactor) TryAddTx(tx types.Tx, sender p2p.Peer) (*abcicli.ReqRes, er
 	}
 
 	reqRes, err := memR.mempool.CheckTx(tx, senderID)
-	switch {
-	case errors.Is(err, ErrTxInCache):
-		memR.Logger.Debug("Tx already exists in cache", "tx", log.NewLazySprintf("%X", tx.Hash()), "sender", senderID)
-		return nil, err
-	case err != nil:
-		memR.Logger.Info("Could not check tx", "tx", log.NewLazySprintf("%X", tx.Hash()), "sender", senderID, "err", err)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrTxInCache):
+			memR.Logger.Debug("Tx already exists in cache", "tx", log.NewLazySprintf("%X", tx.Hash()), "sender", senderID)
+		case errors.As(err, &ErrMempoolIsFull{}):
+			// using debug level to avoid flooding when traffic is high
+			memR.Logger.Debug(err.Error())
+		default:
+			memR.Logger.Info("Could not check tx", "tx", log.NewLazySprintf("%X", tx.Hash()), "sender", senderID, "err", err)
+		}
 		return nil, err
 	}
 
@@ -227,7 +231,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 	}()
 
-	iter := memR.mempool.NewIterator(ctx)
+	iter := NewBlockingIterator(ctx, memR.mempool, string(peer.ID()))
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
 		if !memR.IsRunning() || !peer.IsRunning() {
@@ -235,7 +239,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		entry := <-iter.WaitNextCh()
-
 		// If the entry we were looking at got garbage collected (removed), try again.
 		if entry == nil {
 			continue
@@ -270,8 +273,15 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// NOTE: Transaction batching was disabled due to
 		// https://github.com/tendermint/tendermint/issues/5796
 
+		// We are paying the cost of computing the transaction hash in
+		// any case, even when logger level > debug. So it only once.
+		// See: https://github.com/cometbft/cometbft/issues/4167
+		txHash := entry.Tx().Hash()
+
 		// Do not send this transaction if we receive it from peer.
 		if entry.IsSender(peer.ID()) {
+			memR.Logger.Debug("Skipping transaction, peer is sender",
+				"tx", log.NewLazySprintf("%X", txHash), "peer", peer.ID())
 			continue
 		}
 
@@ -282,6 +292,9 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				break
 			}
 
+			memR.Logger.Debug("Sending transaction to peer",
+				"tx", log.NewLazySprintf("%X", txHash), "peer", peer.ID())
+
 			success := peer.Send(p2p.Envelope{
 				ChannelID: MempoolChannel,
 				Message:   &protomem.Txs{Txs: [][]byte{entry.Tx()}},
@@ -289,6 +302,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			if success {
 				break
 			}
+
+			memR.Logger.Debug("Failed sending transaction to peer",
+				"tx", log.NewLazySprintf("%X", txHash), "peer", peer.ID())
+
 			select {
 			case <-time.After(PeerCatchupSleepIntervalMS * time.Millisecond):
 			case <-peer.Quit():
