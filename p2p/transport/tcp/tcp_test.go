@@ -4,15 +4,12 @@ import (
 	"errors"
 	"math/rand"
 	"net"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/libs/protoio"
 	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
@@ -251,11 +248,11 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 	mt := testSetupMultiplexTransport(t)
 
 	var (
-		fastNodePV   = ed25519.GenPrivKey()
-		errc         = make(chan error)
-		fastc        = make(chan struct{})
-		slowc        = make(chan struct{})
-		slowdonec    = make(chan struct{})
+		fastNodePV = ed25519.GenPrivKey()
+		errc       = make(chan error)
+		fastc      = make(chan struct{})
+		slowc      = make(chan struct{})
+		slowdonec  = make(chan struct{})
 	)
 
 	// Simulate slow Peer.
@@ -284,19 +281,10 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 			errc <- errors.New("fast peer timed out")
 		}
 
-		sc, err := upgradeSecretConn(c, 200*time.Millisecond, ed25519.GenPrivKey())
+		_, err = upgradeSecretConn(c, 200*time.Millisecond, ed25519.GenPrivKey())
 		if err != nil {
 			errc <- err
 			return
-		}
-
-		ni := testNodeInfo(
-			key.PubKeyToID(ed25519.GenPrivKey().PubKey()),
-			"slow_peer",
-		)
-		_, err = ni.Handshake(sc, 200*time.Millisecond)
-		if err != nil {
-			errc <- err
 		}
 	}()
 
@@ -362,7 +350,7 @@ func TestTransportMultiplexValidateNodeInfo(t *testing.T) {
 		t.Errorf("connection failed: %v", err)
 	}
 
-	_,_, err := mt.Accept()
+	_, _, err := mt.Accept()
 	if e, ok := err.(ErrRejected); ok {
 		if !e.IsNodeInfoInvalid() {
 			t.Errorf("expected NodeInfo to be invalid, got %v", err)
@@ -398,7 +386,7 @@ func TestTransportMultiplexRejectMissmatchID(t *testing.T) {
 		t.Errorf("connection failed: %v", err)
 	}
 
-	_, err := mt.Accept()
+	_, _, err := mt.Accept()
 	if e, ok := err.(ErrRejected); ok {
 		if !e.IsAuthFailure() {
 			t.Errorf("expected auth failure, got %v", e)
@@ -461,7 +449,7 @@ func TestTransportMultiplexRejectIncompatible(t *testing.T) {
 		close(errc)
 	}()
 
-	_, err := mt.Accept()
+	_, _, err := mt.Accept()
 	if e, ok := err.(ErrRejected); ok {
 		if !e.IsIncompatible() {
 			t.Errorf("expected to reject incompatible, got %v", e)
@@ -500,7 +488,7 @@ func TestTransportMultiplexRejectSelf(t *testing.T) {
 		t.Errorf("expected connection failure")
 	}
 
-	_,_, err := mt.Accept()
+	_, _, err := mt.Accept()
 	if err, ok := err.(ErrRejected); ok {
 		if !err.IsSelf() {
 			t.Errorf("expected to reject self, got: %v", err)
@@ -535,65 +523,10 @@ func TestTransportConnDuplicateIPFilter(t *testing.T) {
 	}
 }
 
-func TestTransportHandshake(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var (
-		peerPV       = ed25519.GenPrivKey()
-		peerNodeInfo = testNodeInfo(key.PubKeyToID(peerPV.PubKey()), defaultNodeName)
-	)
-
-	go func() {
-		c, err := net.Dial(ln.Addr().Network(), ln.Addr().String())
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		go func(c net.Conn) {
-			_, err := protoio.NewDelimitedWriter(c).WriteMsg(peerNodeInfo.(DefaultNodeInfo).ToProto())
-			if err != nil {
-				t.Error(err)
-			}
-		}(c)
-		go func(c net.Conn) {
-			// ni   DefaultNodeInfo
-			var pbni tmp2p.DefaultNodeInfo
-
-			protoReader := protoio.NewDelimitedReader(c, ni.MaxNodeInfoSize())
-			_, err := protoReader.ReadMsg(&pbni)
-			if err != nil {
-				t.Error(err)
-			}
-
-			_, err = ni.DefaultNodeInfoFromToProto(&pbni)
-			if err != nil {
-				t.Error(err)
-			}
-		}(c)
-	}()
-
-	c, err := ln.Accept()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ni, err := handshake(c, 20*time.Millisecond, emptyNodeInfo())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if have, want := ni, peerNodeInfo; !reflect.DeepEqual(have, want) {
-		t.Errorf("have %v, want %v", have, want)
-	}
-}
-
 // create listener.
 func testSetupMultiplexTransport(t *testing.T) *MultiplexTransport {
 	t.Helper()
+
 	var (
 		pv = ed25519.GenPrivKey()
 		id = key.PubKeyToID(pv.PubKey())

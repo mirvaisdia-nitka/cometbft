@@ -7,6 +7,7 @@ import (
 
 	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
 	"github.com/cometbft/cometbft/libs/protoio"
+	key "github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 )
@@ -96,10 +97,10 @@ func (e ErrRejected) IsNodeInfoInvalid() bool { return e.isNodeInfoInvalid }
 func (e ErrRejected) IsSelf() bool { return e.isSelf }
 
 type handshaker struct {
-	ourNodeInfo *ni.NodeInfo
+	ourNodeInfo ni.NodeInfo
 }
 
-func (h *handshaker) New(ourNodeInfo *ni.NodeInfo) *handshaker {
+func NewHandshaker(ourNodeInfo ni.NodeInfo) *handshaker {
 	return &handshaker{
 		ourNodeInfo: ourNodeInfo,
 	}
@@ -124,19 +125,19 @@ func (h *handshaker) Handshake(c net.Conn, handshakeTimeout time.Duration) (ni.N
 	}
 
 	// Ensure connection key matches self reported key.
-	connID := key.PubKeyToID(secretConn.RemotePubKey())
-	if connID != nodeInfo.ID() {
-		return nil, ErrRejected{
-			conn: c,
-			id:   connID,
-			err: fmt.Errorf(
-				"conn.ID (%v) NodeInfo.ID (%v) mismatch",
-				connID,
-				nodeInfo.ID(),
-			),
-			isAuthFailure: true,
-		}
-	}
+	// connID := key.PubKeyToID(c.RemotePubKey())
+	// if connID != nodeInfo.ID() {
+	// 	return nil, ErrRejected{
+	// 		conn: c,
+	// 		id:   connID,
+	// 		err: fmt.Errorf(
+	// 			"conn.ID (%v) NodeInfo.ID (%v) mismatch",
+	// 			connID,
+	// 			nodeInfo.ID(),
+	// 		),
+	// 		isAuthFailure: true,
+	// 	}
+	// }
 
 	// Reject self.
 	if h.ourNodeInfo.ID() == nodeInfo.ID() {
@@ -160,7 +161,7 @@ func (h *handshaker) Handshake(c net.Conn, handshakeTimeout time.Duration) (ni.N
 	return nodeInfo, nil
 }
 
-func handshake(ourNodeInfo *ni.NodeInfo, c net.Conn, timeout time.Duration) (peerNodeInfo ni.NodeInfo, err error) {
+func handshake(ourNodeInfo ni.NodeInfo, c net.Conn, timeout time.Duration) (peerNodeInfo ni.NodeInfo, err error) {
 	if err := c.SetDeadline(time.Now().Add(timeout)); err != nil {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func handshake(ourNodeInfo *ni.NodeInfo, c net.Conn, timeout time.Duration) (pee
 	)
 
 	go func(errc chan<- error, c net.Conn) {
-		_, err := protoio.NewDelimitedWriter(c).WriteMsg(ourNodeInfo.ToProto())
+		_, err := protoio.NewDelimitedWriter(c).WriteMsg(ourNodeInfo.(ni.DefaultNodeInfo).ToProto())
 		errc <- err
 	}(errc, c)
 	go func(errc chan<- error, c net.Conn) {

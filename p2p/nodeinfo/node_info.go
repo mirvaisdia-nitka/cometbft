@@ -10,7 +10,6 @@ import (
 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
 	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
-	"github.com/cometbft/cometbft/version"
 )
 
 const (
@@ -42,14 +41,6 @@ type ProtocolVersion struct {
 	Block uint64 `json:"block"`
 	App   uint64 `json:"app"`
 }
-
-// defaultProtocolVersion populates the Block and P2P versions using
-// the global values, but not the App.
-var defaultProtocolVersion = NewProtocolVersion(
-	version.P2PProtocol,
-	version.BlockProtocol,
-	0,
-)
 
 // NewProtocolVersion returns a fully populated ProtocolVersion.
 func NewProtocolVersion(p2p, block, app uint64) ProtocolVersion {

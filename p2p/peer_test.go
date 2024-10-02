@@ -20,6 +20,7 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	cmtconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -232,9 +233,9 @@ func (rp *remotePeer) accept() {
 	}
 }
 
-func (rp *remotePeer) nodeInfo() NodeInfo {
-	return DefaultNodeInfo{
-		ProtocolVersion: defaultProtocolVersion,
+func (rp *remotePeer) nodeInfo() ni.NodeInfo {
+	return ni.DefaultNodeInfo{
+		ProtocolVersion: ni.NewProtocolVersion(0, 0, 0),
 		DefaultNodeID:   rp.Addr().ID,
 		ListenAddr:      rp.listener.Addr().String(),
 		Network:         "testing",

@@ -465,7 +465,7 @@ func createMConnection(
 	)
 }
 
-func wrapPeer(c net.Conn, ni ni.NodeInfo, cfg peerConfig, socketAddr *na.NetAddress) Peer {
+func wrapPeer(c net.Conn, ni ni.NodeInfo, cfg peerConfig, socketAddr *na.NetAddress, mConfig tcpconn.MConnConfig) Peer {
 	persistent := false
 	if cfg.isPersistent != nil {
 		if cfg.outbound {
@@ -487,7 +487,7 @@ func wrapPeer(c net.Conn, ni ni.NodeInfo, cfg peerConfig, socketAddr *na.NetAddr
 
 	p := newPeer(
 		peerConn,
-		mt.mConfig,
+		mConfig,
 		ni,
 		cfg.reactorsByCh,
 		cfg.msgTypeByChID,

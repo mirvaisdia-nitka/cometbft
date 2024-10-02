@@ -631,7 +631,7 @@ func (sw *Switch) IsPeerPersistent(na *na.NetAddress) bool {
 
 func (sw *Switch) acceptRoutine() {
 	for {
-		conn, err := sw.transport.Accept()
+		conn, addr, err := sw.transport.Accept()
 		if err != nil {
 			switch err := err.(type) {
 			case ErrRejected:
@@ -679,9 +679,22 @@ func (sw *Switch) acceptRoutine() {
 			break
 		}
 
-		handshake()
+		handshaker := NewHandshaker(sw.nodeInfo)
+		nodeInfo, err := handshaker.Handshake(conn, sw.config.HandshakeTimeout)
 
-		p := wrapPeer(conn, nodeInfo, cfg, &addr)
+		p := wrapPeer(
+			conn,
+			nodeInfo,
+			peerConfig{
+				chDescs:       sw.chDescs,
+				onPeerError:   sw.StopPeerForError,
+				isPersistent:  sw.IsPeerPersistent,
+				reactorsByCh:  sw.reactorsByCh,
+				msgTypeByChID: sw.msgTypeByChID,
+				metrics:       sw.metrics,
+			},
+			&addr,
+			MConnConfig(sw.config))
 
 		if !sw.IsPeerUnconditional(p.NodeInfo().ID()) {
 			// Ignore connection if we already have enough peers.
@@ -731,14 +744,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		return errors.New("dial err (peerConfig.DialFail == true)")
 	}
 
-	p, err := sw.transport.Dial(*addr, peerConfig{
-		chDescs:       sw.chDescs,
-		onPeerError:   sw.StopPeerForError,
-		isPersistent:  sw.IsPeerPersistent,
-		reactorsByCh:  sw.reactorsByCh,
-		msgTypeByChID: sw.msgTypeByChID,
-		metrics:       sw.metrics,
-	})
+	conn, err := sw.transport.Dial(*addr)
 	if err != nil {
 		if e, ok := err.(ErrRejected); ok {
 			if e.IsSelf() {
@@ -759,6 +765,23 @@ func (sw *Switch) addOutboundPeerWithConfig(
 
 		return err
 	}
+
+	handshaker := NewHandshaker(sw.nodeInfo)
+	nodeInfo, err := handshaker.Handshake(conn, sw.config.HandshakeTimeout)
+
+	p := wrapPeer(
+		conn,
+		nodeInfo,
+		peerConfig{
+			chDescs:       sw.chDescs,
+			onPeerError:   sw.StopPeerForError,
+			isPersistent:  sw.IsPeerPersistent,
+			reactorsByCh:  sw.reactorsByCh,
+			msgTypeByChID: sw.msgTypeByChID,
+			metrics:       sw.metrics,
+		},
+		addr,
+		MConnConfig(sw.config))
 
 	if err := sw.addPeer(p); err != nil {
 		sw.transport.Cleanup(p)
