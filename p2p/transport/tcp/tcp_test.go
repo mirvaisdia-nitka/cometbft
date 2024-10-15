@@ -11,7 +11,7 @@ import (
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
-	key "github.com/cometbft/cometbft/p2p/nodekey"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -34,7 +34,7 @@ func TestTransportMultiplex_ConnFilter(t *testing.T) {
 			PrivKey: ed25519.GenPrivKey(),
 		},
 	)
-	id := mt.nodenodekey.ID()
+	id := mt.nodeKey.ID()
 
 	MultiplexTransportConnFilters(
 		func(_ ConnSet, _ net.Conn, _ []net.IP) error { return nil },
@@ -87,7 +87,7 @@ func TestTransportMultiplex_ConnFilterTimeout(t *testing.T) {
 			PrivKey: ed25519.GenPrivKey(),
 		},
 	)
-	id := mt.nodenodekey.ID()
+	id := mt.nodeKey.ID()
 
 	MultiplexTransportFilterTimeout(5 * time.Millisecond)(mt)
 	MultiplexTransportConnFilters(
@@ -131,7 +131,7 @@ func TestTransportMultiplex_ConnFilterTimeout(t *testing.T) {
 
 func TestTransportMultiplex_MaxIncomingConnections(t *testing.T) {
 	pv := ed25519.GenPrivKey()
-	id := key.PubKeyToID(pv.PubKey())
+	id := nodekey.PubKeyToID(pv.PubKey())
 	mt := newMultiplexTransport(
 		nodekey.NodeKey{
 			PrivKey: pv,
@@ -150,7 +150,7 @@ func TestTransportMultiplex_MaxIncomingConnections(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	laddr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+	laddr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 	// Connect more peers than max
 	for i := 0; i <= maxIncomingConns; i++ {
@@ -177,7 +177,7 @@ func TestTransportMultiplex_MaxIncomingConnections(t *testing.T) {
 
 func TestTransportMultiplex_AcceptMultiple(t *testing.T) {
 	mt := testSetupMultiplexTransport(t)
-	laddr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+	laddr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 	var (
 		seed     = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -257,7 +257,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 	// Simulate slow Peer.
 	go func() {
-		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 		c, err := addr.Dial()
 		if err != nil {
@@ -297,7 +297,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 				PrivKey: fastNodePV,
 			},
 		)
-		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -335,7 +335,7 @@ func TestTransportMultiplexValidateNodeInfo(t *testing.T) {
 			)
 		)
 
-		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -371,7 +371,7 @@ func TestTransportMultiplexRejectMissmatchID(t *testing.T) {
 				PrivKey: ed25519.GenPrivKey(),
 			},
 		)
-		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -408,7 +408,7 @@ func TestTransportMultiplexDialRejectWrongID(t *testing.T) {
 		)
 	)
 
-	wrongID := key.PubKeyToID(ed25519.GenPrivKey().PubKey())
+	wrongID := nodekey.PubKeyToID(ed25519.GenPrivKey().PubKey())
 	addr := na.NewNetAddress(wrongID, mt.listener.Addr())
 
 	_, err := dialer.Dial(*addr)
@@ -438,7 +438,7 @@ func TestTransportMultiplexRejectIncompatible(t *testing.T) {
 				},
 			)
 		)
-		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -465,7 +465,7 @@ func TestTransportMultiplexRejectSelf(t *testing.T) {
 	errc := make(chan error)
 
 	go func() {
-		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
 
 		_, err := mt.Dial(*addr)
 		if err != nil {
@@ -529,7 +529,7 @@ func testSetupMultiplexTransport(t *testing.T) *MultiplexTransport {
 
 	var (
 		pv = ed25519.GenPrivKey()
-		id = key.PubKeyToID(pv.PubKey())
+		id = nodekey.PubKeyToID(pv.PubKey())
 		mt = newMultiplexTransport(
 			nodekey.NodeKey{
 				PrivKey: pv,

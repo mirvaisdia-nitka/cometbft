@@ -8,6 +8,7 @@ import (
 	"github.com/cometbft/cometbft/p2p"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -30,10 +31,10 @@ func NewPeer(ip net.IP) *Peer {
 		netAddr = na.NewNetAddressIPPort(ip, 26656)
 	}
 	nodeKey := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
-	netAddr.ID = nodenodekey.ID()
+	netAddr.ID = nodeKey.ID()
 	mp := &Peer{
 		ip:   ip,
-		id:   nodenodekey.ID(),
+		id:   nodeKey.ID(),
 		addr: netAddr,
 		kv:   make(map[string]any),
 	}

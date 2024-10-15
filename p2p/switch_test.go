@@ -45,23 +45,29 @@ type testStreamDescriptor struct {
 	ID byte
 }
 
+var _ StreamDescriptor = testStreamDescriptor{}
+
 func (sd testStreamDescriptor) StreamID() byte {
 	return sd.ID
+}
+
+func (sd testStreamDescriptor) MessageType() proto.Message {
+	return &p2pproto.PexAddrs{}
 }
 
 type TestReactor struct {
 	BaseReactor
 
 	mtx               cmtsync.Mutex
-	streamDescriptors []testStreamDescriptor
+	streamDescriptors []StreamDescriptor
 	logMessages       bool
 	msgsCounter       int
 	msgsReceived      map[byte][]PeerMessage
 }
 
-func NewTestReactor(streamDescriptors []testStreamDescriptor, logMessages bool) *TestReactor {
+func NewTestReactor(descs []StreamDescriptor, logMessages bool) *TestReactor {
 	tr := &TestReactor{
-		streamDescriptors: streamDescriptors,
+		streamDescriptors: descs,
 		logMessages:       logMessages,
 		msgsReceived:      make(map[byte][]PeerMessage),
 	}
@@ -111,13 +117,13 @@ func initSwitchFunc(_ int, sw *Switch) *Switch {
 	})
 
 	// Make two reactors of two channels each
-	sw.AddReactor("foo", NewTestReactor([]testStreamDescriptor{
-		{ID: byte(0x00)},
-		{ID: byte(0x01)},
+	sw.AddReactor("foo", NewTestReactor([]StreamDescriptor{
+		testStreamDescriptor{ID: byte(0x00)},
+		testStreamDescriptor{ID: byte(0x01)},
 	}, true))
-	sw.AddReactor("bar", NewTestReactor([]testStreamDescriptor{
-		{ID: byte(0x02)},
-		{ID: byte(0x03)},
+	sw.AddReactor("bar", NewTestReactor([]StreamDescriptor{
+		testStreamDescriptor{ID: byte(0x02)},
+		testStreamDescriptor{ID: byte(0x03)},
 	}, true))
 
 	return sw
@@ -267,15 +273,23 @@ func TestSwitchPeerFilter(t *testing.T) {
 	rp.Start()
 	t.Cleanup(rp.Stop)
 
-	p, err := sw.transport.Dial(*rp.Addr(), peerConfig{
-		chDescs:      sw.chDescs,
-		onPeerError:  sw.StopPeerForError,
-		isPersistent: sw.IsPeerPersistent,
-		reactorsByCh: sw.reactorsByCh,
-	})
+	conn, err := sw.transport.Dial(*rp.Addr())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	p := wrapPeer(conn,
+		sw.nodeInfo,
+		peerConfig{
+			chDescs:       sw.chDescs,
+			onPeerError:   sw.StopPeerForError,
+			isPersistent:  sw.IsPeerPersistent,
+			reactorsByCh:  sw.reactorsByCh,
+			msgTypeByChID: sw.msgTypeByChID,
+			metrics:       sw.metrics,
+		},
+		rp.Addr(),
+		MConnConfig(sw.config))
 
 	err = sw.addPeer(p)
 	if err, ok := err.(tcp.ErrRejected); ok {
@@ -316,18 +330,26 @@ func TestSwitchPeerFilterTimeout(t *testing.T) {
 	rp.Start()
 	defer rp.Stop()
 
-	p, err := sw.transport.Dial(*rp.Addr(), peerConfig{
-		chDescs:      sw.chDescs,
-		onPeerError:  sw.StopPeerForError,
-		isPersistent: sw.IsPeerPersistent,
-		reactorsByCh: sw.reactorsByCh,
-	})
+	conn, err := sw.transport.Dial(*rp.Addr())
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	p := wrapPeer(conn,
+		sw.nodeInfo,
+		peerConfig{
+			chDescs:       sw.chDescs,
+			onPeerError:   sw.StopPeerForError,
+			isPersistent:  sw.IsPeerPersistent,
+			reactorsByCh:  sw.reactorsByCh,
+			msgTypeByChID: sw.msgTypeByChID,
+			metrics:       sw.metrics,
+		},
+		rp.Addr(),
+		MConnConfig(sw.config))
+
 	err = sw.addPeer(p)
-	if _, ok := err.(ErrFilterTimeout); !ok {
+	if _, ok := err.(tcp.ErrFilterTimeout); !ok {
 		t.Errorf("expected ErrFilterTimeout")
 	}
 }
@@ -347,15 +369,23 @@ func TestSwitchPeerFilterDuplicate(t *testing.T) {
 	rp.Start()
 	defer rp.Stop()
 
-	p, err := sw.transport.Dial(*rp.Addr(), peerConfig{
-		chDescs:      sw.chDescs,
-		onPeerError:  sw.StopPeerForError,
-		isPersistent: sw.IsPeerPersistent,
-		reactorsByCh: sw.reactorsByCh,
-	})
+	conn, err := sw.transport.Dial(*rp.Addr())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	p := wrapPeer(conn,
+		sw.nodeInfo,
+		peerConfig{
+			chDescs:       sw.chDescs,
+			onPeerError:   sw.StopPeerForError,
+			isPersistent:  sw.IsPeerPersistent,
+			reactorsByCh:  sw.reactorsByCh,
+			msgTypeByChID: sw.msgTypeByChID,
+			metrics:       sw.metrics,
+		},
+		rp.Addr(),
+		MConnConfig(sw.config))
 
 	if err := sw.addPeer(p); err != nil {
 		t.Fatal(err)
@@ -398,13 +428,21 @@ func TestSwitchStopsNonPersistentPeerOnError(t *testing.T) {
 	rp.Start()
 	defer rp.Stop()
 
-	p, err := sw.transport.Dial(*rp.Addr(), peerConfig{
-		chDescs:      sw.chDescs,
-		onPeerError:  sw.StopPeerForError,
-		isPersistent: sw.IsPeerPersistent,
-		reactorsByCh: sw.reactorsByCh,
-	})
+	conn, err := sw.transport.Dial(*rp.Addr())
 	require.NoError(err)
+
+	p := wrapPeer(conn,
+		sw.nodeInfo,
+		peerConfig{
+			chDescs:       sw.chDescs,
+			onPeerError:   sw.StopPeerForError,
+			isPersistent:  sw.IsPeerPersistent,
+			reactorsByCh:  sw.reactorsByCh,
+			msgTypeByChID: sw.msgTypeByChID,
+			metrics:       sw.metrics,
+		},
+		rp.Addr(),
+		MConnConfig(sw.config))
 
 	err = sw.addPeer(p)
 	require.NoError(err)
@@ -703,24 +741,26 @@ type errorTransport struct {
 	acceptErr error
 }
 
+var _ Transport = errorTransport{}
+
 func (errorTransport) NetAddress() na.NetAddress {
 	panic("not implemented")
 }
 
-func (et errorTransport) Accept(peerConfig) (Peer, error) {
-	return nil, et.acceptErr
+func (et errorTransport) Accept() (net.Conn, *na.NetAddress, error) {
+	return nil, nil, et.acceptErr
 }
 
-func (errorTransport) Dial(na.NetAddress, peerConfig) (Peer, error) {
+func (errorTransport) Dial(na.NetAddress) (net.Conn, error) {
 	panic("not implemented")
 }
 
-func (errorTransport) Cleanup(Peer) {
+func (errorTransport) Cleanup(net.Conn) error {
 	panic("not implemented")
 }
 
 func TestSwitchAcceptRoutineErrorCases(t *testing.T) {
-	sw := NewSwitch(cfg, errorTransport{ErrFilterTimeout{}})
+	sw := NewSwitch(cfg, errorTransport{tcp.ErrFilterTimeout{}})
 	assert.NotPanics(t, func() {
 		err := sw.Start()
 		require.NoError(t, err)
@@ -728,7 +768,7 @@ func TestSwitchAcceptRoutineErrorCases(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	sw = NewSwitch(cfg, errorTransport{tcp.ErrRejected{conn: nil, err: errors.New("filtered"), isFiltered: true}})
+	sw = NewSwitch(cfg, errorTransport{ErrRejected{conn: nil, err: errors.New("filtered"), isFiltered: true}})
 	assert.NotPanics(t, func() {
 		err := sw.Start()
 		require.NoError(t, err)

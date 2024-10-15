@@ -12,6 +12,7 @@ import (
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtnet "github.com/cometbft/cometbft/internal/net"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 const testCh = 0x01
@@ -115,12 +116,12 @@ func TestNodeInfoValidate(t *testing.T) {
 	name := "testing"
 
 	// test case passes
-	ni = testNodeInfo(nodenodekey.ID(), name).(DefaultNodeInfo)
+	ni = testNodeInfo(nodeKey.ID(), name).(DefaultNodeInfo)
 	ni.Channels = channels
 	require.NoError(t, ni.Validate())
 
 	for _, tc := range testCases {
-		ni := testNodeInfo(nodenodekey.ID(), name).(DefaultNodeInfo)
+		ni := testNodeInfo(nodeKey.ID(), name).(DefaultNodeInfo)
 		ni.Channels = channels
 		tc.malleateNodeInfo(&ni)
 		err := ni.Validate()

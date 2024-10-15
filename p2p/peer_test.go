@@ -85,8 +85,8 @@ func createOutboundPeerAndPerformHandshake(
 	config *config.P2PConfig,
 	mConfig cmtconn.MConnConfig,
 ) (*peer, error) {
-	chDescs := []testStreamDescriptor{
-		{ID: testCh},
+	chDescs := []StreamDescriptor{
+		testStreamDescriptor{ID: testCh},
 	}
 	reactorsByCh := map[byte]Reactor{testCh: NewTestReactor(chDescs, true)}
 	msgTypeByChID := map[byte]proto.Message{
@@ -99,7 +99,7 @@ func createOutboundPeerAndPerformHandshake(
 	}
 	timeout := 1 * time.Second
 	ourNodeInfo := testNodeInfo(addr.ID, "host_peer")
-	peerNodeInfo, err := handshake(pc.conn, timeout, ourNodeInfo)
+	peerNodeInfo, err := handshake(ourNodeInfo, pc.conn, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (rp *remotePeer) Dial(addr *na.NetAddress) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = handshake(pc.conn, time.Second, rp.nodeInfo())
+	_, err = handshake(rp.nodeInfo(), pc.conn, time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (rp *remotePeer) accept() {
 			golog.Fatalf("Failed to create a peer: %+v", err)
 		}
 
-		_, err = handshake(pc.conn, time.Second, rp.nodeInfo())
+		_, err = handshake(rp.nodeInfo(), pc.conn, time.Second)
 		if err != nil {
 			golog.Fatalf("Failed to perform handshake: %+v", err)
 		}

@@ -82,9 +82,13 @@ func newPeerConn(
 }
 
 // ID only exists for SecretConnection.
-// NOTE: Will panic if conn is not *SecretConnection.
+//
+// If the connection is not a SecretConnection, it returns "undefined".
 func (pc peerConn) ID() nodekey.ID {
-	return nodekey.PubKeyToID(pc.conn.(*tcpconn.SecretConnection).RemotePubKey())
+	if sc, ok := pc.conn.(*tcpconn.SecretConnection); ok {
+		return nodekey.PubKeyToID(sc.RemotePubKey())
+	}
+	return nodekey.ID("undefined")
 }
 
 // Return the IP from the connection RemoteAddr.

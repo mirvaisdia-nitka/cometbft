@@ -25,6 +25,7 @@ import (
 	dbs "github.com/cometbft/cometbft/light/store/db"
 	"github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/p2p"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	rpcserver "github.com/cometbft/cometbft/rpc/jsonrpc/server"
@@ -278,7 +279,7 @@ func setupNode() (*config.Config, log.Logger, *p2p.NodeKey, error) {
 
 	nodeLogger = nodeLogger.With("module", "main")
 
-	nodeKey, err := p2p.LoadOrGenNodeKey(cmtcfg.NodeKeyFile())
+	nodeKey, err := nodekey.LoadOrGenNodeKey(cmtcfg.NodeKeyFile())
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to load or gen node key %s: %w", cmtcfg.NodeKeyFile(), err)
 	}

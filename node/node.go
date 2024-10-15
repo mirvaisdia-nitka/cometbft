@@ -30,6 +30,7 @@ import (
 	"github.com/cometbft/cometbft/p2p"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/pex"
 	tcp "github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/proxy"
@@ -612,7 +613,7 @@ func (n *Node) OnStart() error {
 	}
 
 	// Start the transport.
-	addr, err := na.NewNetAddressString(na.IDAddressString(n.nodenodekey.ID(), n.config.P2P.ListenAddress))
+	addr, err := na.NewNetAddressString(na.IDAddressString(n.nodeKey.ID(), n.config.P2P.ListenAddress))
 	if err != nil {
 		return err
 	}
@@ -1037,7 +1038,7 @@ func makeNodeInfo(
 			state.Version.Consensus.Block,
 			state.Version.Consensus.App,
 		),
-		DefaultNodeID: nodenodekey.ID(),
+		DefaultNodeID: nodeKey.ID(),
 		Network:       genDoc.ChainID,
 		Version:       version.CMTSemVer,
 		Channels: []byte{
