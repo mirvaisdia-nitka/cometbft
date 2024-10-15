@@ -25,7 +25,7 @@ func (mp *mockPeer) FlushStop()              { mp.Stop() } //nolint:errcheck // 
 func (*mockPeer) HasChannel(byte) bool       { return true }
 func (*mockPeer) TrySend(Envelope) bool      { return true }
 func (*mockPeer) Send(Envelope) bool         { return true }
-func (*mockPeer) NodeInfo() ni.NodeInfo         { return ni.DefaultNodeInfo{} }
+func (*mockPeer) NodeInfo() ni.NodeInfo      { return ni.DefaultNodeInfo{} }
 func (*mockPeer) Status() ConnectionStatus   { return ConnectionStatus{} }
 func (mp *mockPeer) ID() key.ID              { return mp.id }
 func (*mockPeer) IsOutbound() bool           { return false }
@@ -35,7 +35,7 @@ func (*mockPeer) Set(string, any)            {}
 func (mp *mockPeer) RemoteIP() net.IP        { return mp.ip }
 func (*mockPeer) SocketAddr() *na.NetAddress { return nil }
 func (mp *mockPeer) RemoteAddr() net.Addr    { return &net.TCPAddr{IP: mp.ip, Port: 8800} }
-func (*mockPeer) CloseConn() error           { return nil }
+func (*mockPeer) Conn() net.Conn             { return nil }
 func (*mockPeer) SetRemovalFailed()          {}
 func (*mockPeer) GetRemovalFailed() bool     { return false }
 

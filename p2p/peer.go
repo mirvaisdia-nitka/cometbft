@@ -36,7 +36,8 @@ type Peer interface {
 	IsOutbound() bool   // did we dial the peer
 	IsPersistent() bool // do we redial this peer when we disconnect
 
-	CloseConn() error // close original connection
+	// Conn returns the underlying connection.
+	Conn() net.Conn
 
 	NodeInfo() ni.NodeInfo // peer's info
 	Status() tcpconn.ConnectionStatus
@@ -316,9 +317,9 @@ func (p *peer) HasChannel(chID byte) bool {
 	return false
 }
 
-// CloseConn closes original connection. Used for cleaning up in cases where the peer had not been started at all.
-func (p *peer) CloseConn() error {
-	return p.peerConn.conn.Close()
+// Conn returns the underlying connection.
+func (p *peer) Conn() net.Conn {
+	return p.peerConn.conn
 }
 
 func (p *peer) SetRemovalFailed() {
@@ -332,11 +333,6 @@ func (p *peer) GetRemovalFailed() bool {
 // ---------------------------------------------------
 // methods only used for testing
 // TODO: can we remove these?
-
-// CloseConn closes the underlying connection.
-func (pc *peerConn) CloseConn() {
-	pc.conn.Close()
-}
 
 // RemoteAddr returns peer's remote network address.
 func (p *peer) RemoteAddr() net.Addr {

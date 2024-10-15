@@ -8,17 +8,16 @@ import (
 	"github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	cmtrand "github.com/cometbft/cometbft/internal/rand"
+	cmtnet "github.com/cometbft/cometbft/internal/net"
 	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
-	"github.com/cometbft/cometbft/p2p/key"
-	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 )
 
 // ------------------------------------------------
-
 
 func AddPeerToSwitchPeerSet(sw *Switch, peer Peer) {
 	sw.peers.Add(peer) //nolint:errcheck // ignore error
@@ -38,7 +37,6 @@ func CreateRandomPeer(outbound bool) Peer {
 	p.SetLogger(log.TestingLogger().With("peer", addr))
 	return p
 }
-
 
 // ------------------------------------------------------------------
 // Connects switches via arbitrary net.Conn. Used for testing.
@@ -161,7 +159,8 @@ func (sw *Switch) addPeerWithConnection(conn net.Conn) error {
 		return err
 	}
 
-	ni, err := handshake(conn, time.Second, sw.nodeInfo)
+	handshaker := NewHandshaker(sw.nodeInfo)
+	ni, err := handshaker.Handshake(conn, time.Second)
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			sw.Logger.Error("Error closing connection", "err", err)
@@ -180,7 +179,9 @@ func (sw *Switch) addPeerWithConnection(conn net.Conn) error {
 	)
 
 	if err = sw.addPeer(p); err != nil {
-		pc.CloseConn()
+		if cErr := conn.Close(); cErr != nil {
+			sw.Logger.Error("Error closing connection", "err", cErr)
+		}
 		return err
 	}
 
@@ -205,7 +206,7 @@ func MakeSwitch(
 	initSwitch func(int, *Switch) *Switch,
 	opts ...SwitchOption,
 ) *Switch {
-	nodeKey := ni.NodeKey{
+	nodeKey := key.NodeKey{
 		PrivKey: ed25519.GenPrivKey(),
 	}
 	nodeInfo := testNodeInfo(nodeKey.ID(), fmt.Sprintf("node%d", i))
@@ -216,7 +217,7 @@ func MakeSwitch(
 		panic(err)
 	}
 
-	t := tcp.NewMultiplexTransport(nodeInfo, nodeKey, MConnConfig(cfg))
+	t := tcp.NewMultiplexTransport(nodeKey, MConnConfig(cfg))
 
 	if err := t.Listen(*addr); err != nil {
 		panic(err)
@@ -226,16 +227,6 @@ func MakeSwitch(
 	sw := initSwitch(i, NewSwitch(cfg, t, opts...))
 	sw.SetLogger(log.TestingLogger().With("switch", i))
 	sw.SetNodeKey(&nodeKey)
-
-	ni := nodeInfo.(ni.DefaultNodeInfo)
-	for ch := range sw.reactorsByCh {
-		ni.Channels = append(ni.Channels, ch)
-	}
-	nodeInfo = ni
-
-	// TODO: We need to setup reactors ahead of time so the NodeInfo is properly
-	// populated and we don't have to do those awkward overrides and setters.
-	t.nodeInfo = nodeInfo
 	sw.SetNodeInfo(nodeInfo)
 
 	return sw
@@ -277,7 +268,6 @@ func testPeerConn(
 // ----------------------------------------------------------------
 // rand node info
 
-
 type AddrBookMock struct {
 	Addrs        map[string]struct{}
 	OurAddrs     map[string]struct{}
@@ -311,4 +301,44 @@ func (book *AddrBookMock) AddPrivateIDs(addrs []string) {
 	for _, addr := range addrs {
 		book.PrivateAddrs[addr] = struct{}{}
 	}
+}
+
+type mockNodeInfo struct {
+	addr *na.NetAddress
+}
+
+func (ni mockNodeInfo) ID() key.ID                                          { return ni.addr.ID }
+func (ni mockNodeInfo) NetAddress() (*na.NetAddress, error)                 { return ni.addr, nil }
+func (mockNodeInfo) Validate() error                                        { return nil }
+func (mockNodeInfo) CompatibleWith(ni.NodeInfo) error                       { return nil }
+func (mockNodeInfo) Handshake(net.Conn, time.Duration) (ni.NodeInfo, error) { return nil, nil }
+
+func testNodeInfo(id key.ID, name string) ni.NodeInfo {
+	return testNodeInfoWithNetwork(id, name, "testing")
+}
+
+func testNodeInfoWithNetwork(id key.ID, name, network string) ni.NodeInfo {
+	const testCh = 0x01
+
+	return ni.DefaultNodeInfo{
+		ProtocolVersion: ni.NewProtocolVersion(0, 0, 0),
+		DefaultNodeID:   id,
+		ListenAddr:      fmt.Sprintf("127.0.0.1:%d", getFreePort()),
+		Network:         network,
+		Version:         "1.2.3-rc0-deadbeef",
+		Channels:        []byte{testCh},
+		Moniker:         name,
+		Other: ni.DefaultNodeInfoOther{
+			TxIndex:    "on",
+			RPCAddress: fmt.Sprintf("127.0.0.1:%d", getFreePort()),
+		},
+	}
+}
+
+func getFreePort() int {
+	port, err := cmtnet.GetFreePort()
+	if err != nil {
+		panic(err)
+	}
+	return port
 }

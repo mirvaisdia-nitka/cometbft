@@ -357,27 +357,29 @@ func (sw *Switch) StopPeerGracefully(peer Peer) {
 	sw.stopAndRemovePeer(peer, nil)
 }
 
-func (sw *Switch) stopAndRemovePeer(peer Peer, reason any) {
+func (sw *Switch) stopAndRemovePeer(p Peer, reason any) {
 	// Returning early if the peer is already stopped prevents data races because
 	// this function may be called from multiple places at once.
-	if err := peer.Stop(); err != nil {
-		sw.Logger.Error("error stopping peer", "peer", peer.ID(), "err", err)
+	if err := p.Stop(); err != nil {
+		sw.Logger.Error("error stopping peer", "peer", p.ID(), "err", err)
 		return
 	}
 
-	sw.transport.Cleanup(peer)
+	// ignore errors because the peer is already stopped
+	_ = sw.transport.Cleanup(p.Conn())
+
 	for _, reactor := range sw.reactors {
-		reactor.RemovePeer(peer, reason)
+		reactor.RemovePeer(p, reason)
 	}
 
 	// Removing a peer should go last to avoid a situation where a peer
 	// reconnect to our node and the switch calls InitPeer before
 	// RemovePeer is finished.
 	// https://github.com/tendermint/tendermint/issues/3338
-	if !sw.peers.Remove(peer) {
+	if !sw.peers.Remove(p) {
 		// Removal of the peer has failed. The function above sets a flag within the peer to mark this.
 		// We keep this message here as information to the developer.
-		sw.Logger.Debug("error on peer removal", "peer", peer.ID())
+		sw.Logger.Debug("error on peer removal", "peer", p.ID())
 		return
 	}
 
@@ -479,7 +481,7 @@ func (sw *Switch) DialPeersAsync(peers []string) error {
 	}
 	// return first non-ErrNetAddressLookup error
 	for _, err := range errs {
-		if errors.As(err, &ErrNetAddressLookup{}) {
+		if errors.As(err, &na.ErrNetAddressLookup{}) {
 			continue
 		}
 		return err
@@ -582,7 +584,7 @@ func (sw *Switch) AddPersistentPeers(addrs []string) error {
 	}
 	// return first non-ErrNetAddressLookup error
 	for _, err := range errs {
-		if errors.As(err, &ErrNetAddressLookup{}) {
+		if errors.As(err, &na.ErrNetAddressLookup{}) {
 			continue
 		}
 		return err
@@ -594,9 +596,9 @@ func (sw *Switch) AddPersistentPeers(addrs []string) error {
 func (sw *Switch) AddUnconditionalPeerIDs(ids []string) error {
 	sw.Logger.Info("Adding unconditional peer ids", "ids", ids)
 	for _, id := range ids {
-		err := validateID(key.ID(id))
+		err := na.ValidateID(key.ID(id))
 		if err != nil {
-			return ErrInvalidPeerID{ID: key.ID(id), Source: err}
+			return na.ErrInvalidPeerID{ID: key.ID(id), Source: err}
 		}
 
 		sw.unconditionalPeerIDs[key.ID(id)] = struct{}{}
@@ -607,9 +609,9 @@ func (sw *Switch) AddUnconditionalPeerIDs(ids []string) error {
 func (sw *Switch) AddPrivatePeerIDs(ids []string) error {
 	validIDs := make([]string, 0, len(ids))
 	for _, id := range ids {
-		err := validateID(key.ID(id))
+		err := na.ValidateID(key.ID(id))
 		if err != nil {
-			return ErrInvalidPeerID{ID: key.ID(id), Source: err}
+			return na.ErrInvalidPeerID{ID: key.ID(id), Source: err}
 		}
 
 		validIDs = append(validIDs, id)
@@ -693,7 +695,7 @@ func (sw *Switch) acceptRoutine() {
 				msgTypeByChID: sw.msgTypeByChID,
 				metrics:       sw.metrics,
 			},
-			&addr,
+			addr,
 			MConnConfig(sw.config))
 
 		if !sw.IsPeerUnconditional(p.NodeInfo().ID()) {
@@ -707,14 +709,14 @@ func (sw *Switch) acceptRoutine() {
 					"max", sw.config.MaxNumInboundPeers,
 				)
 
-				sw.transport.Cleanup(p)
+				_ = sw.transport.Cleanup(conn)
 
 				continue
 			}
 		}
 
 		if err := sw.addPeer(p); err != nil {
-			sw.transport.Cleanup(p)
+			_ = sw.transport.Cleanup(conn)
 			if p.IsRunning() {
 				_ = p.Stop()
 			}
@@ -784,7 +786,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		MConnConfig(sw.config))
 
 	if err := sw.addPeer(p); err != nil {
-		sw.transport.Cleanup(p)
+		_ = sw.transport.Cleanup(conn)
 		if p.IsRunning() {
 			_ = p.Stop()
 		}

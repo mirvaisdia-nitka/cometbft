@@ -30,15 +30,17 @@ type peerConfig struct {
 // the transport. Each transport is also responsible to filter establishing
 // peers specific to its domain.
 type Transport interface {
-	// Listening address.
+	// NetAddress returns the NetAddress of the local node.
 	NetAddress() na.NetAddress
 
-	// Accept returns a newly connected Peer.
-	Accept() (net.Conn, na.NetAddress, error)
+	// Accept waits for and returns the next connection to the local node.
+	Accept() (net.Conn, *na.NetAddress, error)
 
-	// Dial connects to the Peer for the address.
+	// Dial dials the given address and returns a connection.
 	Dial(addr na.NetAddress) (net.Conn, error)
 
-	// Cleanup any resources associated with Peer.
-	Cleanup(peer Peer)
+	// Cleanup any resources associated with the given connection.
+	//
+	// Must be run when the peer is dropped for any reason.
+	Cleanup(conn net.Conn) error
 }
