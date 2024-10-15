@@ -14,7 +14,7 @@ import (
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
 	"github.com/cometbft/cometbft/light"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/proxy"
 	sm "github.com/cometbft/cometbft/state"
 	"github.com/cometbft/cometbft/types"
@@ -386,8 +386,8 @@ func (s *syncer) applyChunks(chunks *chunkQueue) error {
 		// Reject any senders as requested by the app
 		for _, sender := range resp.RejectSenders {
 			if sender != "" {
-				s.snapshots.RejectPeer(key.ID(sender))
-				err := chunks.DiscardSender(key.ID(sender))
+				s.snapshots.RejectPeer(nodekey.ID(sender))
+				err := chunks.DiscardSender(nodekey.ID(sender))
 				if err != nil {
 					return fmt.Errorf("failed to reject sender: %w", err)
 				}

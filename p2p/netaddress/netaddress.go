@@ -15,7 +15,7 @@ import (
 
 	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
 	cmtrand "github.com/cometbft/cometbft/internal/rand"
-	"github.com/cometbft/cometbft/p2p/key"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // EmptyNetAddress defines the string representation of an empty NetAddress.
@@ -24,14 +24,14 @@ const EmptyNetAddress = "<nil-NetAddress>"
 // NetAddress defines information about a peer on the network
 // including its ID, IP address, and port.
 type NetAddress struct {
-	ID   key.ID `json:"id"`
-	IP   net.IP `json:"ip"`
-	Port uint16 `json:"port"`
+	ID   nodekey.ID `json:"id"`
+	IP   net.IP     `json:"ip"`
+	Port uint16     `json:"port"`
 }
 
 // IDAddressString returns id@hostPort. It strips the leading
 // protocol from protocolHostPort if it exists.
-func IDAddressString(id key.ID, protocolHostPort string) string {
+func IDAddressString(id nodekey.ID, protocolHostPort string) string {
 	hostPort := removeProtocolIfDefined(protocolHostPort)
 	return fmt.Sprintf("%s@%s", id, hostPort)
 }
@@ -41,7 +41,7 @@ func IDAddressString(id key.ID, protocolHostPort string) string {
 // using 0.0.0.0:0. When normal run, other net.Addr (except TCP) will
 // panic. Panics if ID is invalid.
 // TODO: socks proxies?
-func NewNetAddress(id key.ID, addr net.Addr) *NetAddress {
+func NewNetAddress(id nodekey.ID, addr net.Addr) *NetAddress {
 	tcpAddr, ok := addr.(*net.TCPAddr)
 	if !ok {
 		if flag.Lookup("test.v") == nil { // normal run
@@ -76,11 +76,11 @@ func NewNetAddressString(addr string) (*NetAddress, error) {
 	}
 
 	// get ID
-	if err := ValidateID(key.ID(spl[0])); err != nil {
+	if err := ValidateID(nodekey.ID(spl[0])); err != nil {
 		return nil, ErrNetAddressInvalid{addrWithoutProtocol, err}
 	}
-	var id key.ID
-	id, addrWithoutProtocol = key.ID(spl[0]), spl[1]
+	var id nodekey.ID
+	id, addrWithoutProtocol = nodekey.ID(spl[0]), spl[1]
 
 	// get host and port
 	host, portStr, err := net.SplitHostPort(addrWithoutProtocol)
@@ -149,7 +149,7 @@ func NetAddressFromProto(pb tmp2p.NetAddress) (*NetAddress, error) {
 		return nil, ErrNetAddressInvalid{Addr: pb.IP, Err: ErrInvalidPort{pb.Port}}
 	}
 	return &NetAddress{
-		ID:   key.ID(pb.ID),
+		ID:   nodekey.ID(pb.ID),
 		IP:   ip,
 		Port: uint16(pb.Port),
 	}, nil
@@ -408,7 +408,7 @@ func removeProtocolIfDefined(addr string) string {
 	return addr
 }
 
-func ValidateID(id key.ID) error {
+func ValidateID(id nodekey.ID) error {
 	if len(id) == 0 {
 		return ErrNoIP
 	}
@@ -416,8 +416,8 @@ func ValidateID(id key.ID) error {
 	if err != nil {
 		return err
 	}
-	if len(idBytes) != key.IDByteLength {
-		return ErrInvalidPeerIDLength{Got: len(idBytes), Expected: key.IDByteLength}
+	if len(idBytes) != nodekey.IDByteLength {
+		return ErrInvalidPeerIDLength{Got: len(idBytes), Expected: nodekey.IDByteLength}
 	}
 	return nil
 }

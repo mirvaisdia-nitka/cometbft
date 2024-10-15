@@ -28,6 +28,6 @@ func genNodeKey(*cobra.Command, []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(nodeKey.ID())
+	fmt.Println(nodenodekey.ID())
 	return nil
 }

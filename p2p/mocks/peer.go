@@ -3,10 +3,8 @@
 package mocks
 
 import (
-	key "github.com/cometbft/cometbft/p2p/key"
-	conn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
-
 	log "github.com/cometbft/cometbft/libs/log"
+	conn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -15,6 +13,8 @@ import (
 	netaddress "github.com/cometbft/cometbft/p2p/netaddress"
 
 	nodeinfo "github.com/cometbft/cometbft/p2p/nodeinfo"
+
+	nodekey "github.com/cometbft/cometbft/p2p/nodekey"
 
 	p2p "github.com/cometbft/cometbft/p2p"
 )
@@ -49,9 +49,9 @@ func (_m *Peer) FlushStop() {
 	_m.Called()
 }
 
-// Get provides a mock function with given fields: _a0
-func (_m *Peer) Get(_a0 string) any {
-	ret := _m.Called(_a0)
+// Get provides a mock function with given fields: key
+func (_m *Peer) Get(key string) any {
+	ret := _m.Called(key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
@@ -59,7 +59,7 @@ func (_m *Peer) Get(_a0 string) any {
 
 	var r0 any
 	if rf, ok := ret.Get(0).(func(string) any); ok {
-		r0 = rf(_a0)
+		r0 = rf(key)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(any)
@@ -106,18 +106,18 @@ func (_m *Peer) HasChannel(chID byte) bool {
 }
 
 // ID provides a mock function with given fields:
-func (_m *Peer) ID() key.ID {
+func (_m *Peer) ID() nodekey.ID {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for ID")
 	}
 
-	var r0 key.ID
-	if rf, ok := ret.Get(0).(func() key.ID); ok {
+	var r0 nodekey.ID
+	if rf, ok := ret.Get(0).(func() nodekey.ID); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(key.ID)
+		r0 = ret.Get(0).(nodekey.ID)
 	}
 
 	return r0
@@ -334,9 +334,9 @@ func (_m *Peer) Send(e p2p.Envelope) bool {
 	return r0
 }
 
-// Set provides a mock function with given fields: _a0, value
-func (_m *Peer) Set(_a0 string, value any) {
-	_m.Called(_a0, value)
+// Set provides a mock function with given fields: key, value
+func (_m *Peer) Set(key string, value any) {
+	_m.Called(key, value)
 }
 
 // SetLogger provides a mock function with given fields: l

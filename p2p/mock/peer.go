@@ -6,7 +6,6 @@ import (
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
@@ -15,7 +14,7 @@ import (
 type Peer struct {
 	*service.BaseService
 	ip                   net.IP
-	id                   key.ID
+	id                   nodekey.ID
 	addr                 *na.NetAddress
 	kv                   map[string]any
 	Outbound, Persistent bool
@@ -30,11 +29,11 @@ func NewPeer(ip net.IP) *Peer {
 	} else {
 		netAddr = na.NewNetAddressIPPort(ip, 26656)
 	}
-	nodeKey := key.NodeKey{PrivKey: ed25519.GenPrivKey()}
-	netAddr.ID = nodeKey.ID()
+	nodeKey := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
+	netAddr.ID = nodenodekey.ID()
 	mp := &Peer{
 		ip:   ip,
-		id:   nodeKey.ID(),
+		id:   nodenodekey.ID(),
 		addr: netAddr,
 		kv:   make(map[string]any),
 	}
@@ -56,7 +55,7 @@ func (mp *Peer) NodeInfo() ni.NodeInfo {
 	}
 }
 func (*Peer) Status() conn.ConnectionStatus { return conn.ConnectionStatus{} }
-func (mp *Peer) ID() key.ID                 { return mp.id }
+func (mp *Peer) ID() nodekey.ID             { return mp.id }
 func (mp *Peer) IsOutbound() bool           { return mp.Outbound }
 func (mp *Peer) IsPersistent() bool         { return mp.Persistent }
 func (mp *Peer) Get(key string) any {

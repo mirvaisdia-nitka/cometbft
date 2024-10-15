@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // ErrSwitchDuplicatePeerID to be raised when a peer is connecting with a known
 // ID.
 type ErrSwitchDuplicatePeerID struct {
-	ID key.ID
+	ID nodekey.ID
 }
 
 func (e ErrSwitchDuplicatePeerID) Error() string {
@@ -39,7 +39,7 @@ func (e ErrSwitchConnectToSelf) Error() string {
 
 type ErrSwitchAuthenticationFailure struct {
 	Dialed *na.NetAddress
-	Got    key.ID
+	Got    nodekey.ID
 }
 
 func (e ErrSwitchAuthenticationFailure) Error() string {

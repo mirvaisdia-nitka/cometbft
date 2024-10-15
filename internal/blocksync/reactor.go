@@ -10,7 +10,7 @@ import (
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	tcpconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 	sm "github.com/cometbft/cometbft/state"
 	"github.com/cometbft/cometbft/store"
@@ -46,7 +46,7 @@ type mempoolReactor interface {
 
 type peerError struct {
 	err    error
-	peerID key.ID
+	peerID nodekey.ID
 }
 
 func (e peerError) Error() string {

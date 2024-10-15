@@ -22,8 +22,8 @@ import (
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	"github.com/cometbft/cometbft/libs/service"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 const (
@@ -62,7 +62,7 @@ type AddrBook interface {
 	PickAddress(biasTowardsNewAddrs int) *na.NetAddress
 
 	// Mark address
-	MarkGood(id key.ID)
+	MarkGood(id nodekey.ID)
 	MarkAttempt(addr *na.NetAddress)
 	MarkBad(addr *na.NetAddress, dur time.Duration) // Move peer to bad peers list
 	// Add bad peers back to addrBook
@@ -93,9 +93,9 @@ type addrBook struct {
 	mtx        cmtsync.Mutex
 	rand       *cmtrand.Rand
 	ourAddrs   map[string]struct{}
-	privateIDs map[key.ID]struct{}
-	addrLookup map[key.ID]*knownAddress // new & old
-	badPeers   map[key.ID]*knownAddress // banned peers
+	privateIDs map[nodekey.ID]struct{}
+	addrLookup map[nodekey.ID]*knownAddress // new & old
+	badPeers   map[nodekey.ID]*knownAddress // banned peers
 	bucketsOld []map[string]*knownAddress
 	bucketsNew []map[string]*knownAddress
 	nOld       int
@@ -125,9 +125,9 @@ func NewAddrBook(filePath string, routabilityStrict bool) AddrBook {
 	am := &addrBook{
 		rand:              cmtrand.NewRand(),
 		ourAddrs:          make(map[string]struct{}),
-		privateIDs:        make(map[key.ID]struct{}),
-		addrLookup:        make(map[key.ID]*knownAddress),
-		badPeers:          make(map[key.ID]*knownAddress),
+		privateIDs:        make(map[nodekey.ID]struct{}),
+		addrLookup:        make(map[nodekey.ID]*knownAddress),
+		badPeers:          make(map[nodekey.ID]*knownAddress),
 		filePath:          filePath,
 		routabilityStrict: routabilityStrict,
 	}
@@ -203,7 +203,7 @@ func (a *addrBook) AddPrivateIDs(ids []string) {
 	defer a.mtx.Unlock()
 
 	for _, id := range ids {
-		a.privateIDs[key.ID(id)] = struct{}{}
+		a.privateIDs[nodekey.ID(id)] = struct{}{}
 	}
 }
 
@@ -320,7 +320,7 @@ func (a *addrBook) PickAddress(biasTowardsNewAddrs int) *na.NetAddress {
 
 // MarkGood implements AddrBook - it marks the peer as good and
 // moves it into an "old" bucket.
-func (a *addrBook) MarkGood(id key.ID) {
+func (a *addrBook) MarkGood(id nodekey.ID) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 

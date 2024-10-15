@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 var (
@@ -95,7 +95,7 @@ func (err ErrAddressBanned) Error() string {
 
 // ErrReceivedPEXRequestTooSoon is thrown when a peer sends a PEX request too soon after the last one.
 type ErrReceivedPEXRequestTooSoon struct {
-	Peer         key.ID
+	Peer         nodekey.ID
 	LastReceived time.Time
 	Now          time.Time
 	MinInterval  time.Duration

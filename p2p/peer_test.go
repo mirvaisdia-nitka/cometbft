@@ -18,9 +18,9 @@ import (
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/libs/bytes"
 	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	cmtconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -165,8 +165,8 @@ func (rp *remotePeer) Addr() *na.NetAddress {
 	return rp.addr
 }
 
-func (rp *remotePeer) ID() key.ID {
-	return key.PubKeyToID(rp.PrivKey.PubKey())
+func (rp *remotePeer) ID() nodekey.ID {
+	return nodekey.PubKeyToID(rp.PrivKey.PubKey())
 }
 
 func (rp *remotePeer) Start() {
@@ -179,7 +179,7 @@ func (rp *remotePeer) Start() {
 		golog.Fatalf("net.Listen tcp :0: %+v", e)
 	}
 	rp.listener = l
-	rp.addr = na.NewNetAddress(PubKeyToID(rp.PrivKey.PubKey()), l.Addr())
+	rp.addr = na.NewNetAddress(nodekey.PubKeyToID(rp.PrivKey.PubKey()), l.Addr())
 	if rp.channels == nil {
 		rp.channels = []byte{testCh}
 	}

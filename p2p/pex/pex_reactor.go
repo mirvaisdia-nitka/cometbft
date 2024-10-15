@@ -12,8 +12,8 @@ import (
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	tcpconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -81,7 +81,7 @@ type Reactor struct {
 	attemptsToDial sync.Map // address (string) -> {number of attempts (int), last time dialed (time.Time)}
 
 	// seed/crawled mode fields
-	crawlPeerInfos map[key.ID]crawlPeerInfo
+	crawlPeerInfos map[nodekey.ID]crawlPeerInfo
 }
 
 func (r *Reactor) minReceiveRequestInterval() time.Duration {
@@ -122,7 +122,7 @@ func NewReactor(b AddrBook, config *ReactorConfig) *Reactor {
 		ensurePeersPeriod:    defaultEnsurePeersPeriod,
 		requestsSent:         cmap.NewCMap(),
 		lastReceivedRequests: cmap.NewCMap(),
-		crawlPeerInfos:       make(map[key.ID]crawlPeerInfo),
+		crawlPeerInfos:       make(map[nodekey.ID]crawlPeerInfo),
 	}
 	r.BaseReactor = *p2p.NewBaseReactor("PEX", r)
 	return r
@@ -456,7 +456,7 @@ func (r *Reactor) ensurePeers() {
 	// NOTE: range here is [10, 90]. Too high ?
 	newBias := cmtmath.MinInt(out, 8)*10 + 10
 
-	toDial := make(map[key.ID]*na.NetAddress)
+	toDial := make(map[nodekey.ID]*na.NetAddress)
 	// Try maxAttempts times to pick numToDial addresses to dial
 	maxAttempts := numToDial * 3
 

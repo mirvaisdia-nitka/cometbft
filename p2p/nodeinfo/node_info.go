@@ -8,8 +8,8 @@ import (
 	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
 	cmtstrings "github.com/cometbft/cometbft/internal/strings"
 	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 const (
@@ -27,7 +27,7 @@ func MaxNodeInfoSize() int {
 // NodeInfo exposes basic info of a node
 // and determines if we're compatible.
 type NodeInfo interface {
-	ID() key.ID
+	ID() nodekey.ID
 	NetAddress() (*na.NetAddress, error)
 	Validate() error
 	CompatibleWith(other NodeInfo) error
@@ -63,8 +63,8 @@ type DefaultNodeInfo struct {
 
 	// Authenticate
 	// TODO: replace with NetAddress
-	DefaultNodeID key.ID `json:"id"`          // authenticated identifier
-	ListenAddr    string `json:"listen_addr"` // accepting incoming
+	DefaultNodeID nodekey.ID `json:"id"`          // authenticated identifier
+	ListenAddr    string     `json:"listen_addr"` // accepting incoming
 
 	// Check compatibility.
 	// Channels are HexBytes so easier to read as JSON
@@ -84,7 +84,7 @@ type DefaultNodeInfoOther struct {
 }
 
 // ID returns the node's peer ID.
-func (info DefaultNodeInfo) ID() key.ID {
+func (info DefaultNodeInfo) ID() nodekey.ID {
 	return info.DefaultNodeID
 }
 
@@ -252,7 +252,7 @@ func DefaultNodeInfoFromToProto(pb *tmp2p.DefaultNodeInfo) (DefaultNodeInfo, err
 			Block: pb.ProtocolVersion.Block,
 			App:   pb.ProtocolVersion.App,
 		},
-		DefaultNodeID: key.ID(pb.DefaultNodeID),
+		DefaultNodeID: nodekey.ID(pb.DefaultNodeID),
 		ListenAddr:    pb.ListenAddr,
 		Network:       pb.Network,
 		Version:       pb.Version,

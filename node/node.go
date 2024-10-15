@@ -28,7 +28,6 @@ import (
 	"github.com/cometbft/cometbft/light"
 	mempl "github.com/cometbft/cometbft/mempool"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/pex"
@@ -64,7 +63,7 @@ type Node struct {
 	sw          *p2p.Switch  // p2p connections
 	addrBook    pex.AddrBook // known peers
 	nodeInfo    ni.NodeInfo
-	nodeKey     *key.NodeKey // our node privkey
+	nodeKey     *nodekey.NodeKey // our node privkey
 	isListening bool
 
 	// services
@@ -283,7 +282,7 @@ func BootstrapState(ctx context.Context, config *cfg.Config, dbProvider cfg.DBPr
 func NewNode(ctx context.Context,
 	config *cfg.Config,
 	privValidator types.PrivValidator,
-	nodeKey *key.NodeKey,
+	nodeKey *nodekey.NodeKey,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
 	dbProvider cfg.DBProvider,
@@ -311,7 +310,7 @@ func NewNode(ctx context.Context,
 func NewNodeWithCliParams(ctx context.Context,
 	config *cfg.Config,
 	privValidator types.PrivValidator,
-	nodeKey *key.NodeKey,
+	nodeKey *nodekey.NodeKey,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
 	dbProvider cfg.DBProvider,
@@ -613,7 +612,7 @@ func (n *Node) OnStart() error {
 	}
 
 	// Start the transport.
-	addr, err := na.NewNetAddressString(na.IDAddressString(n.nodeKey.ID(), n.config.P2P.ListenAddress))
+	addr, err := na.NewNetAddressString(na.IDAddressString(n.nodenodekey.ID(), n.config.P2P.ListenAddress))
 	if err != nil {
 		return err
 	}
@@ -1022,7 +1021,7 @@ func (n *Node) NodeInfo() ni.NodeInfo {
 
 func makeNodeInfo(
 	config *cfg.Config,
-	nodeKey *key.NodeKey,
+	nodeKey *nodekey.NodeKey,
 	txIndexer txindex.TxIndexer,
 	genDoc *types.GenesisDoc,
 	state sm.State,
@@ -1038,7 +1037,7 @@ func makeNodeInfo(
 			state.Version.Consensus.Block,
 			state.Version.Consensus.App,
 		),
-		DefaultNodeID: nodeKey.ID(),
+		DefaultNodeID: nodenodekey.ID(),
 		Network:       genDoc.ChainID,
 		Version:       version.CMTSemVer,
 		Channels: []byte{

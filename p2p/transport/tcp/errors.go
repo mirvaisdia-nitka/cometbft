@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // ErrTransportClosed is raised when the Transport has been closed.
@@ -28,7 +28,7 @@ type ErrRejected struct {
 	addr              na.NetAddress
 	conn              net.Conn
 	err               error
-	id                key.ID
+	id                nodekey.ID
 	isAuthFailure     bool
 	isDuplicate       bool
 	isFiltered        bool

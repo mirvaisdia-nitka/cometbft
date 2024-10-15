@@ -3,8 +3,8 @@ package pex
 import (
 	"time"
 
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // knownAddress tracks information about a known network address
@@ -31,7 +31,7 @@ func newKnownAddress(addr *na.NetAddress, src *na.NetAddress) *knownAddress {
 	}
 }
 
-func (ka *knownAddress) ID() key.ID {
+func (ka *knownAddress) ID() nodekey.ID {
 	return ka.Addr.ID
 }
 

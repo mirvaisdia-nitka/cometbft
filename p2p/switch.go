@@ -12,9 +12,9 @@ import (
 	"github.com/cometbft/cometbft/internal/cmap"
 	"github.com/cometbft/cometbft/internal/rand"
 	"github.com/cometbft/cometbft/libs/service"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
@@ -59,7 +59,7 @@ type AddrBook interface {
 	AddPrivateIDs(ids []string)
 	AddOurAddress(addr *na.NetAddress)
 	OurAddress(addr *na.NetAddress) bool
-	MarkGood(id key.ID)
+	MarkGood(id nodekey.ID)
 	RemoveAddress(addr *na.NetAddress)
 	HasAddress(addr *na.NetAddress) bool
 	Save()
@@ -86,12 +86,12 @@ type Switch struct {
 	peers         *PeerSet
 	dialing       *cmap.CMap
 	reconnecting  *cmap.CMap
-	nodeInfo      ni.NodeInfo  // our node info
-	nodeKey       *key.NodeKey // our node privkey
+	nodeInfo      ni.NodeInfo      // our node info
+	nodeKey       *nodekey.NodeKey // our node privkey
 	addrBook      AddrBook
 	// peers addresses with whom we'll maintain constant connection
 	persistentPeersAddrs []*na.NetAddress
-	unconditionalPeerIDs map[key.ID]struct{}
+	unconditionalPeerIDs map[nodekey.ID]struct{}
 
 	transport Transport
 
@@ -131,7 +131,7 @@ func NewSwitch(
 		transport:            transport,
 		filterTimeout:        defaultFilterTimeout,
 		persistentPeersAddrs: make([]*na.NetAddress, 0),
-		unconditionalPeerIDs: make(map[key.ID]struct{}),
+		unconditionalPeerIDs: make(map[nodekey.ID]struct{}),
 	}
 
 	// Ensure we have a completely undeterministic PRNG.
@@ -226,7 +226,7 @@ func (sw *Switch) NodeInfo() ni.NodeInfo {
 
 // SetNodeKey sets the switch's private key for authenticated encryption.
 // NOTE: Not goroutine safe.
-func (sw *Switch) SetNodeKey(nodeKey *key.NodeKey) {
+func (sw *Switch) SetNodeKey(nodeKey *nodekey.NodeKey) {
 	sw.nodeKey = nodeKey
 }
 
@@ -307,7 +307,7 @@ func (sw *Switch) NumPeers() (outbound, inbound, dialing int) {
 	return outbound, inbound, dialing
 }
 
-func (sw *Switch) IsPeerUnconditional(id key.ID) bool {
+func (sw *Switch) IsPeerUnconditional(id nodekey.ID) bool {
 	_, ok := sw.unconditionalPeerIDs[id]
 	return ok
 }
@@ -596,12 +596,12 @@ func (sw *Switch) AddPersistentPeers(addrs []string) error {
 func (sw *Switch) AddUnconditionalPeerIDs(ids []string) error {
 	sw.Logger.Info("Adding unconditional peer ids", "ids", ids)
 	for _, id := range ids {
-		err := na.ValidateID(key.ID(id))
+		err := na.ValidateID(nodekey.ID(id))
 		if err != nil {
-			return na.ErrInvalidPeerID{ID: key.ID(id), Source: err}
+			return na.ErrInvalidPeerID{ID: nodekey.ID(id), Source: err}
 		}
 
-		sw.unconditionalPeerIDs[key.ID(id)] = struct{}{}
+		sw.unconditionalPeerIDs[nodekey.ID(id)] = struct{}{}
 	}
 	return nil
 }
@@ -609,9 +609,9 @@ func (sw *Switch) AddUnconditionalPeerIDs(ids []string) error {
 func (sw *Switch) AddPrivatePeerIDs(ids []string) error {
 	validIDs := make([]string, 0, len(ids))
 	for _, id := range ids {
-		err := na.ValidateID(key.ID(id))
+		err := na.ValidateID(nodekey.ID(id))
 		if err != nil {
-			return na.ErrInvalidPeerID{ID: key.ID(id), Source: err}
+			return na.ErrInvalidPeerID{ID: nodekey.ID(id), Source: err}
 		}
 
 		validIDs = append(validIDs, id)

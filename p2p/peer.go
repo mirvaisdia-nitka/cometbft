@@ -11,9 +11,9 @@ import (
 	"github.com/cometbft/cometbft/internal/cmap"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/libs/service"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	tcpconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 	"github.com/cometbft/cometbft/types"
 )
@@ -29,7 +29,7 @@ type Peer interface {
 	service.Service
 	FlushStop()
 
-	ID() key.ID           // peer's cryptographic ID
+	ID() nodekey.ID       // peer's cryptographic ID
 	RemoteIP() net.IP     // remote IP of the connection
 	RemoteAddr() net.Addr // remote address of the connection
 
@@ -83,8 +83,8 @@ func newPeerConn(
 
 // ID only exists for SecretConnection.
 // NOTE: Will panic if conn is not *SecretConnection.
-func (pc peerConn) ID() key.ID {
-	return key.PubKeyToID(pc.conn.(*tcpconn.SecretConnection).RemotePubKey())
+func (pc peerConn) ID() nodekey.ID {
+	return nodekey.PubKeyToID(pc.conn.(*tcpconn.SecretConnection).RemotePubKey())
 }
 
 // Return the IP from the connection RemoteAddr.
@@ -223,7 +223,7 @@ func (p *peer) OnStop() {
 // Implements Peer
 
 // ID returns the peer's ID - the hex encoded hash of its pubkey.
-func (p *peer) ID() key.ID {
+func (p *peer) ID() nodekey.ID {
 	return p.nodeInfo.ID()
 }
 

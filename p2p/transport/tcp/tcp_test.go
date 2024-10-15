@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	key "github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -21,7 +21,7 @@ var defaultNodeName = "host_peer"
 // using the default MConnConfig. It's a convenience function used
 // for testing.
 func newMultiplexTransport(
-	nodeKey key.NodeKey,
+	nodeKey nodekey.NodeKey,
 ) *MultiplexTransport {
 	return NewMultiplexTransport(
 		nodeKey, conn.DefaultMConnConfig(),
@@ -30,11 +30,11 @@ func newMultiplexTransport(
 
 func TestTransportMultiplex_ConnFilter(t *testing.T) {
 	mt := newMultiplexTransport(
-		key.NodeKey{
+		nodekey.NodeKey{
 			PrivKey: ed25519.GenPrivKey(),
 		},
 	)
-	id := mt.nodeKey.ID()
+	id := mt.nodenodekey.ID()
 
 	MultiplexTransportConnFilters(
 		func(_ ConnSet, _ net.Conn, _ []net.IP) error { return nil },
@@ -83,11 +83,11 @@ func TestTransportMultiplex_ConnFilter(t *testing.T) {
 
 func TestTransportMultiplex_ConnFilterTimeout(t *testing.T) {
 	mt := newMultiplexTransport(
-		key.NodeKey{
+		nodekey.NodeKey{
 			PrivKey: ed25519.GenPrivKey(),
 		},
 	)
-	id := mt.nodeKey.ID()
+	id := mt.nodenodekey.ID()
 
 	MultiplexTransportFilterTimeout(5 * time.Millisecond)(mt)
 	MultiplexTransportConnFilters(
@@ -133,7 +133,7 @@ func TestTransportMultiplex_MaxIncomingConnections(t *testing.T) {
 	pv := ed25519.GenPrivKey()
 	id := key.PubKeyToID(pv.PubKey())
 	mt := newMultiplexTransport(
-		key.NodeKey{
+		nodekey.NodeKey{
 			PrivKey: pv,
 		},
 	)
@@ -150,7 +150,7 @@ func TestTransportMultiplex_MaxIncomingConnections(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	laddr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+	laddr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 	// Connect more peers than max
 	for i := 0; i <= maxIncomingConns; i++ {
@@ -177,7 +177,7 @@ func TestTransportMultiplex_MaxIncomingConnections(t *testing.T) {
 
 func TestTransportMultiplex_AcceptMultiple(t *testing.T) {
 	mt := testSetupMultiplexTransport(t)
-	laddr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+	laddr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 	var (
 		seed     = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -228,7 +228,7 @@ func testDialer(dialAddr na.NetAddress, errc chan error) {
 	var (
 		pv     = ed25519.GenPrivKey()
 		dialer = newMultiplexTransport(
-			key.NodeKey{
+			nodekey.NodeKey{
 				PrivKey: pv,
 			},
 		)
@@ -257,7 +257,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 	// Simulate slow Peer.
 	go func() {
-		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 		c, err := addr.Dial()
 		if err != nil {
@@ -293,11 +293,11 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 		<-slowc
 
 		dialer := newMultiplexTransport(
-			key.NodeKey{
+			nodekey.NodeKey{
 				PrivKey: fastNodePV,
 			},
 		)
-		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -329,13 +329,13 @@ func TestTransportMultiplexValidateNodeInfo(t *testing.T) {
 		var (
 			pv     = ed25519.GenPrivKey()
 			dialer = newMultiplexTransport(
-				key.NodeKey{
+				nodekey.NodeKey{
 					PrivKey: pv,
 				},
 			)
 		)
 
-		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -367,11 +367,11 @@ func TestTransportMultiplexRejectMissmatchID(t *testing.T) {
 
 	go func() {
 		dialer := newMultiplexTransport(
-			key.NodeKey{
+			nodekey.NodeKey{
 				PrivKey: ed25519.GenPrivKey(),
 			},
 		)
-		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -402,7 +402,7 @@ func TestTransportMultiplexDialRejectWrongID(t *testing.T) {
 	var (
 		pv     = ed25519.GenPrivKey()
 		dialer = newMultiplexTransport(
-			key.NodeKey{
+			nodekey.NodeKey{
 				PrivKey: pv,
 			},
 		)
@@ -433,12 +433,12 @@ func TestTransportMultiplexRejectIncompatible(t *testing.T) {
 		var (
 			pv     = ed25519.GenPrivKey()
 			dialer = newMultiplexTransport(
-				key.NodeKey{
+				nodekey.NodeKey{
 					PrivKey: pv,
 				},
 			)
 		)
-		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 		_, err := dialer.Dial(*addr)
 		if err != nil {
@@ -465,7 +465,7 @@ func TestTransportMultiplexRejectSelf(t *testing.T) {
 	errc := make(chan error)
 
 	go func() {
-		addr := na.NewNetAddress(mt.nodeKey.ID(), mt.listener.Addr())
+		addr := na.NewNetAddress(mt.nodenodekey.ID(), mt.listener.Addr())
 
 		_, err := mt.Dial(*addr)
 		if err != nil {
@@ -531,7 +531,7 @@ func testSetupMultiplexTransport(t *testing.T) *MultiplexTransport {
 		pv = ed25519.GenPrivKey()
 		id = key.PubKeyToID(pv.PubKey())
 		mt = newMultiplexTransport(
-			key.NodeKey{
+			nodekey.NodeKey{
 				PrivKey: pv,
 			},
 		)

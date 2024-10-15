@@ -16,8 +16,8 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // FIXME These tests should not rely on .(*addrBook) assertions
@@ -203,8 +203,8 @@ func randIPv4Address(t *testing.T) *na.NetAddress {
 			cmtrand.Intn(255),
 		)
 		port := cmtrand.Intn(65535-1) + 1
-		id := key.ID(hex.EncodeToString(cmtrand.Bytes(p2p.IDByteLength)))
-		idAddr := key.IDAddressString(id, fmt.Sprintf("%v:%v", ip, port))
+		id := nodekey.ID(hex.EncodeToString(cmtrand.Bytes(p2p.IDByteLength)))
+		idAddr := nodekey.IDAddressString(id, fmt.Sprintf("%v:%v", ip, port))
 		addr, err := na.NewNetAddressString(idAddr)
 		require.NoError(t, err)
 		if addr.Routable() {

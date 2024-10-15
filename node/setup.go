@@ -26,9 +26,9 @@ import (
 	"github.com/cometbft/cometbft/light"
 	mempl "github.com/cometbft/cometbft/mempool"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	key "github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/pex"
 	tcp "github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/privval"
@@ -411,7 +411,7 @@ func createConsensusReactor(config *cfg.Config,
 func createTransport(
 	config *cfg.Config,
 	nodeInfo ni.NodeInfo,
-	nodeKey *key.NodeKey,
+	nodeKey *nodekey.NodeKey,
 	proxyApp proxy.AppConns,
 ) (
 	*tcp.MultiplexTransport,
@@ -487,7 +487,7 @@ func createSwitch(config *cfg.Config,
 	consensusReactor *cs.Reactor,
 	evidenceReactor *evidence.Reactor,
 	nodeInfo ni.NodeInfo,
-	nodeKey *key.NodeKey,
+	nodeKey *nodekey.NodeKey,
 	p2pLogger log.Logger,
 ) *p2p.Switch {
 	sw := p2p.NewSwitch(
@@ -508,26 +508,26 @@ func createSwitch(config *cfg.Config,
 	sw.SetNodeInfo(nodeInfo)
 	sw.SetNodeKey(nodeKey)
 
-	p2pLogger.Info("P2P Node ID", "ID", nodeKey.ID(), "file", config.NodeKeyFile())
+	p2pLogger.Info("P2P Node ID", "ID", nodenodekey.ID(), "file", config.NodeKeyFile())
 	return sw
 }
 
 func createAddrBookAndSetOnSwitch(config *cfg.Config, sw *p2p.Switch,
-	p2pLogger log.Logger, nodeKey *key.NodeKey,
+	p2pLogger log.Logger, nodeKey *nodekey.NodeKey,
 ) (pex.AddrBook, error) {
 	addrBook := pex.NewAddrBook(config.P2P.AddrBookFile(), config.P2P.AddrBookStrict)
 	addrBook.SetLogger(p2pLogger.With("book", config.P2P.AddrBookFile()))
 
 	// Add ourselves to addrbook to prevent dialing ourselves
 	if config.P2P.ExternalAddress != "" {
-		addr, err := na.NewNetAddressString(na.IDAddressString(nodeKey.ID(), config.P2P.ExternalAddress))
+		addr, err := na.NewNetAddressString(na.IDAddressString(nodenodekey.ID(), config.P2P.ExternalAddress))
 		if err != nil {
 			return nil, fmt.Errorf("p2p.external_address is incorrect: %w", err)
 		}
 		addrBook.AddOurAddress(addr)
 	}
 	if config.P2P.ListenAddress != "" {
-		addr, err := na.NewNetAddressString(na.IDAddressString(nodeKey.ID(), config.P2P.ListenAddress))
+		addr, err := na.NewNetAddressString(na.IDAddressString(nodenodekey.ID(), config.P2P.ListenAddress))
 		if err != nil {
 			return nil, fmt.Errorf("p2p.laddr is incorrect: %w", err)
 		}

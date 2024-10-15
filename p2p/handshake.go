@@ -7,9 +7,9 @@ import (
 
 	tmp2p "github.com/cometbft/cometbft/api/cometbft/p2p/v1"
 	"github.com/cometbft/cometbft/libs/protoio"
-	key "github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // ErrRejected indicates that a Peer was rejected carrying additional
@@ -18,7 +18,7 @@ type ErrRejected struct {
 	addr              na.NetAddress
 	conn              net.Conn
 	err               error
-	id                key.ID
+	id                nodekey.ID
 	isAuthFailure     bool
 	isDuplicate       bool
 	isFiltered        bool

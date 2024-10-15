@@ -10,9 +10,9 @@ import (
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtnet "github.com/cometbft/cometbft/internal/net"
 	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
@@ -206,18 +206,18 @@ func MakeSwitch(
 	initSwitch func(int, *Switch) *Switch,
 	opts ...SwitchOption,
 ) *Switch {
-	nodeKey := key.NodeKey{
+	nk := nodekey.NodeKey{
 		PrivKey: ed25519.GenPrivKey(),
 	}
-	nodeInfo := testNodeInfo(nodeKey.ID(), fmt.Sprintf("node%d", i))
+	nodeInfo := testNodeInfo(nk.ID(), fmt.Sprintf("node%d", i))
 	addr, err := na.NewNetAddressString(
-		na.IDAddressString(nodeKey.ID(), nodeInfo.(ni.DefaultNodeInfo).ListenAddr),
+		na.IDAddressString(nk.ID(), nodeInfo.(ni.DefaultNodeInfo).ListenAddr),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	t := tcp.NewMultiplexTransport(nodeKey, MConnConfig(cfg))
+	t := tcp.NewMultiplexTransport(nk, MConnConfig(cfg))
 
 	if err := t.Listen(*addr); err != nil {
 		panic(err)
@@ -226,7 +226,7 @@ func MakeSwitch(
 	// TODO: let the config be passed in?
 	sw := initSwitch(i, NewSwitch(cfg, t, opts...))
 	sw.SetLogger(log.TestingLogger().With("switch", i))
-	sw.SetNodeKey(&nodeKey)
+	sw.SetNodeKey(&nk)
 	sw.SetNodeInfo(nodeInfo)
 
 	return sw
@@ -287,7 +287,7 @@ func (book *AddrBookMock) OurAddress(addr *na.NetAddress) bool {
 	_, ok := book.OurAddrs[addr.String()]
 	return ok
 }
-func (*AddrBookMock) MarkGood(key.ID) {}
+func (*AddrBookMock) MarkGood(nodekey.ID) {}
 func (book *AddrBookMock) HasAddress(addr *na.NetAddress) bool {
 	_, ok := book.Addrs[addr.String()]
 	return ok
@@ -307,17 +307,17 @@ type mockNodeInfo struct {
 	addr *na.NetAddress
 }
 
-func (ni mockNodeInfo) ID() key.ID                                          { return ni.addr.ID }
+func (ni mockNodeInfo) ID() nodekey.ID                                      { return ni.addr.ID }
 func (ni mockNodeInfo) NetAddress() (*na.NetAddress, error)                 { return ni.addr, nil }
 func (mockNodeInfo) Validate() error                                        { return nil }
 func (mockNodeInfo) CompatibleWith(ni.NodeInfo) error                       { return nil }
 func (mockNodeInfo) Handshake(net.Conn, time.Duration) (ni.NodeInfo, error) { return nil, nil }
 
-func testNodeInfo(id key.ID, name string) ni.NodeInfo {
+func testNodeInfo(id nodekey.ID, name string) ni.NodeInfo {
 	return testNodeInfoWithNetwork(id, name, "testing")
 }
 
-func testNodeInfoWithNetwork(id key.ID, name, network string) ni.NodeInfo {
+func testNodeInfoWithNetwork(id nodekey.ID, name, network string) ni.NodeInfo {
 	const testCh = 0x01
 
 	return ni.DefaultNodeInfo{

@@ -9,16 +9,16 @@ import (
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/libs/service"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // mockPeer for testing the PeerSet.
 type mockPeer struct {
 	service.BaseService
 	ip net.IP
-	id key.ID
+	id nodekey.ID
 }
 
 func (mp *mockPeer) FlushStop()              { mp.Stop() } //nolint:errcheck // ignore error
@@ -27,7 +27,7 @@ func (*mockPeer) TrySend(Envelope) bool      { return true }
 func (*mockPeer) Send(Envelope) bool         { return true }
 func (*mockPeer) NodeInfo() ni.NodeInfo      { return ni.DefaultNodeInfo{} }
 func (*mockPeer) Status() ConnectionStatus   { return ConnectionStatus{} }
-func (mp *mockPeer) ID() key.ID              { return mp.id }
+func (mp *mockPeer) ID() nodekey.ID          { return mp.id }
 func (*mockPeer) IsOutbound() bool           { return false }
 func (*mockPeer) IsPersistent() bool         { return true }
 func (*mockPeer) Get(s string) any           { return s }
@@ -44,10 +44,10 @@ func newMockPeer(ip net.IP) *mockPeer {
 	if ip == nil {
 		ip = net.IP{127, 0, 0, 1}
 	}
-	nodeKey := key.NodeKey{PrivKey: ed25519.GenPrivKey()}
+	nk := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
 	return &mockPeer{
 		ip: ip,
-		id: nodeKey.ID(),
+		id: nk.ID(),
 	}
 }
 

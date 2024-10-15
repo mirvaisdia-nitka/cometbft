@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cometbft/cometbft/p2p/key"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 var (
@@ -52,7 +52,7 @@ func (e ErrInvalidPort) Error() string {
 }
 
 type ErrInvalidPeerID struct {
-	ID     key.ID
+	ID     nodekey.ID
 	Source error
 }
 

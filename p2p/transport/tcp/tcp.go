@@ -9,8 +9,8 @@ import (
 	"golang.org/x/net/netutil"
 
 	"github.com/cometbft/cometbft/crypto"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
+	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -111,7 +111,7 @@ type MultiplexTransport struct {
 	dialTimeout      time.Duration
 	filterTimeout    time.Duration
 	handshakeTimeout time.Duration
-	nodeKey          key.NodeKey
+	nodeKey          nodekey.NodeKey
 	resolver         IPResolver
 
 	// TODO(xla): This config is still needed as we parameterise peerConn and
@@ -127,7 +127,7 @@ var (
 
 // NewMultiplexTransport returns a tcp connected multiplexed peer.
 func NewMultiplexTransport(
-	nodeKey key.NodeKey,
+	nodeKey nodekey.NodeKey,
 	mConfig conn.MConnConfig,
 ) *MultiplexTransport {
 	return &MultiplexTransport{
@@ -275,7 +275,7 @@ func (mt *MultiplexTransport) acceptPeers() {
 				secretConn, err = mt.upgrade(c, nil)
 				if err == nil {
 					addr := c.RemoteAddr()
-					id := key.PubKeyToID(secretConn.RemotePubKey())
+					id := nodekey.PubKeyToID(secretConn.RemotePubKey())
 					netAddr = na.NewNetAddress(id, addr)
 				}
 			}
@@ -361,7 +361,7 @@ func (mt *MultiplexTransport) upgrade(
 	}
 
 	// For outgoing conns, ensure connection key matches dialed key.
-	connID := key.PubKeyToID(secretConn.RemotePubKey())
+	connID := nodekey.PubKeyToID(secretConn.RemotePubKey())
 	if dialedAddr != nil {
 		if dialedID := dialedAddr.ID; connID != dialedID {
 			return nil, ErrRejected{

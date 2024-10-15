@@ -11,7 +11,6 @@ import (
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtnet "github.com/cometbft/cometbft/internal/net"
-	"github.com/cometbft/cometbft/p2p/key"
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 )
 
@@ -21,17 +20,17 @@ type mockNodeInfo struct {
 	addr *na.NetAddress
 }
 
-func (ni mockNodeInfo) ID() key.ID                                       { return ni.addr.ID }
+func (ni mockNodeInfo) ID() nodekey.ID                                   { return ni.addr.ID }
 func (ni mockNodeInfo) NetAddress() (*na.NetAddress, error)              { return ni.addr, nil }
 func (mockNodeInfo) Validate() error                                     { return nil }
 func (mockNodeInfo) CompatibleWith(NodeInfo) error                       { return nil }
 func (mockNodeInfo) Handshake(net.Conn, time.Duration) (NodeInfo, error) { return nil, nil }
 
-func testNodeInfo(id key.ID, name string) NodeInfo {
+func testNodeInfo(id nodekey.ID, name string) NodeInfo {
 	return testNodeInfoWithNetwork(id, name, "testing")
 }
 
-func testNodeInfoWithNetwork(id key.ID, name, network string) NodeInfo {
+func testNodeInfoWithNetwork(id nodekey.ID, name, network string) NodeInfo {
 	return DefaultNodeInfo{
 		ProtocolVersion: NewProtocolVersion(0, 0, 0),
 		DefaultNodeID:   id,
@@ -112,16 +111,16 @@ func TestNodeInfoValidate(t *testing.T) {
 		{"Good RPCAddress", func(ni *DefaultNodeInfo) { ni.Other.RPCAddress = "0.0.0.0:26657" }, false},
 	}
 
-	nodeKey := key.NodeKey{PrivKey: ed25519.GenPrivKey()}
+	nodeKey := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
 	name := "testing"
 
 	// test case passes
-	ni = testNodeInfo(nodeKey.ID(), name).(DefaultNodeInfo)
+	ni = testNodeInfo(nodenodekey.ID(), name).(DefaultNodeInfo)
 	ni.Channels = channels
 	require.NoError(t, ni.Validate())
 
 	for _, tc := range testCases {
-		ni := testNodeInfo(nodeKey.ID(), name).(DefaultNodeInfo)
+		ni := testNodeInfo(nodenodekey.ID(), name).(DefaultNodeInfo)
 		ni.Channels = channels
 		tc.malleateNodeInfo(&ni)
 		err := ni.Validate()
@@ -134,8 +133,8 @@ func TestNodeInfoValidate(t *testing.T) {
 }
 
 func TestNodeInfoCompatible(t *testing.T) {
-	nodeKey1 := key.NodeKey{PrivKey: ed25519.GenPrivKey()}
-	nodeKey2 := key.NodeKey{PrivKey: ed25519.GenPrivKey()}
+	nodeKey1 := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
+	nodeKey2 := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
 	name := "testing"
 
 	var newTestChannel byte = 0x2
