@@ -681,8 +681,26 @@ func (sw *Switch) acceptRoutine() {
 			break
 		}
 
-		handshaker := NewHandshaker(sw.nodeInfo)
-		nodeInfo, err := handshaker.Handshake(conn, sw.config.HandshakeTimeout)
+		h := newHandshaker(sw.nodeInfo)
+		nodeInfo, err := h.Handshake(conn, sw.config.HandshakeTimeout)
+		if err != nil && errors.Is(err, ErrRejected{}) {
+			errRejected := err.(ErrRejected)
+			if errRejected.IsSelf() {
+				// Remove the given address from the address book and add to our addresses
+				// to avoid dialing in the future.
+				addr := errRejected.Addr()
+				sw.addrBook.RemoveAddress(&addr)
+				sw.addrBook.AddOurAddress(&addr)
+			}
+
+			sw.Logger.Info(
+				"Inbound Peer rejected",
+				"err", errRejected,
+				"numPeers", sw.peers.Size(),
+			)
+
+			continue
+		}
 
 		p := wrapPeer(
 			conn,
@@ -768,8 +786,19 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		return err
 	}
 
-	handshaker := NewHandshaker(sw.nodeInfo)
-	nodeInfo, err := handshaker.Handshake(conn, sw.config.HandshakeTimeout)
+	h := newHandshaker(sw.nodeInfo)
+	nodeInfo, err := h.Handshake(conn, sw.config.HandshakeTimeout)
+	if err != nil && errors.Is(err, ErrRejected{}) {
+		errRejected := err.(ErrRejected)
+		if errRejected.IsSelf() {
+			// Remove the given address from the address book and add to our addresses
+			// to avoid dialing in the future.
+			sw.addrBook.RemoveAddress(addr)
+			sw.addrBook.AddOurAddress(addr)
+
+			return err
+		}
+	}
 
 	p := wrapPeer(
 		conn,

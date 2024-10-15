@@ -32,7 +32,7 @@ import (
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/pex"
-	tcp "github.com/cometbft/cometbft/p2p/transport/tcp"
+	"github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/proxy"
 	rpccore "github.com/cometbft/cometbft/rpc/core"
 	grpcserver "github.com/cometbft/cometbft/rpc/grpc/server"
@@ -501,7 +501,7 @@ func NewNodeWithCliParams(ctx context.Context,
 		return nil, err
 	}
 
-	transport, peerFilters := createTransport(config, nodeInfo, nodeKey, proxyApp)
+	transport, peerFilters := createTransport(config, nodeKey, proxyApp)
 
 	p2pLogger := logger.With("module", "p2p")
 	sw := createSwitch(

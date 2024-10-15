@@ -27,19 +27,15 @@ func (mockNodeInfo) Validate() error                                     { retur
 func (mockNodeInfo) CompatibleWith(NodeInfo) error                       { return nil }
 func (mockNodeInfo) Handshake(net.Conn, time.Duration) (NodeInfo, error) { return nil, nil }
 
-func testNodeInfo(id nodekey.ID, name string) NodeInfo {
-	return testNodeInfoWithNetwork(id, name, "testing")
-}
-
-func testNodeInfoWithNetwork(id nodekey.ID, name, network string) NodeInfo {
+func testNodeInfo(id nodekey.ID) NodeInfo {
 	return DefaultNodeInfo{
 		ProtocolVersion: NewProtocolVersion(0, 0, 0),
 		DefaultNodeID:   id,
 		ListenAddr:      fmt.Sprintf("127.0.0.1:%d", getFreePort()),
-		Network:         network,
+		Network:         "testing",
 		Version:         "1.2.3-rc0-deadbeef",
 		Channels:        []byte{testCh},
-		Moniker:         name,
+		Moniker:         "testing",
 		Other: DefaultNodeInfoOther{
 			TxIndex:    "on",
 			RPCAddress: fmt.Sprintf("127.0.0.1:%d", getFreePort()),
@@ -113,15 +109,14 @@ func TestNodeInfoValidate(t *testing.T) {
 	}
 
 	nodeKey := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
-	name := "testing"
 
 	// test case passes
-	ni = testNodeInfo(nodeKey.ID(), name).(DefaultNodeInfo)
+	ni = testNodeInfo(nodeKey.ID()).(DefaultNodeInfo)
 	ni.Channels = channels
 	require.NoError(t, ni.Validate())
 
 	for _, tc := range testCases {
-		ni := testNodeInfo(nodeKey.ID(), name).(DefaultNodeInfo)
+		ni := testNodeInfo(nodeKey.ID()).(DefaultNodeInfo)
 		ni.Channels = channels
 		tc.malleateNodeInfo(&ni)
 		err := ni.Validate()
@@ -136,13 +131,12 @@ func TestNodeInfoValidate(t *testing.T) {
 func TestNodeInfoCompatible(t *testing.T) {
 	nodeKey1 := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
 	nodeKey2 := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
-	name := "testing"
 
 	var newTestChannel byte = 0x2
 
 	// test NodeInfo is compatible
-	ni1 := testNodeInfo(nodeKey1.ID(), name).(DefaultNodeInfo)
-	ni2 := testNodeInfo(nodeKey2.ID(), name).(DefaultNodeInfo)
+	ni1 := testNodeInfo(nodeKey1.ID()).(DefaultNodeInfo)
+	ni2 := testNodeInfo(nodeKey2.ID()).(DefaultNodeInfo)
 	require.NoError(t, ni1.CompatibleWith(ni2))
 
 	// add another channel; still compatible
@@ -165,7 +159,7 @@ func TestNodeInfoCompatible(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		ni := testNodeInfo(nodeKey2.ID(), name).(DefaultNodeInfo)
+		ni := testNodeInfo(nodeKey2.ID()).(DefaultNodeInfo)
 		tc.malleateNodeInfo(&ni)
 		require.Error(t, ni1.CompatibleWith(ni))
 	}

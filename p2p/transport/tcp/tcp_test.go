@@ -15,8 +15,6 @@ import (
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
-var defaultNodeName = "host_peer"
-
 // newMultiplexTransport returns a tcp connected multiplexed peer
 // using the default MConnConfig. It's a convenience function used
 // for testing.

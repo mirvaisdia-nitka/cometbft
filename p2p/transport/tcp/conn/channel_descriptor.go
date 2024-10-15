@@ -26,16 +26,16 @@ func (d ChannelDescriptor) MessageType() proto.Message {
 	return d.MessageTypeI
 }
 
-func (chDesc ChannelDescriptor) FillDefaults() (filled ChannelDescriptor) {
-	if chDesc.SendQueueCapacity == 0 {
-		chDesc.SendQueueCapacity = defaultSendQueueCapacity
+func (d ChannelDescriptor) FillDefaults() (filled ChannelDescriptor) {
+	if d.SendQueueCapacity == 0 {
+		d.SendQueueCapacity = defaultSendQueueCapacity
 	}
-	if chDesc.RecvBufferCapacity == 0 {
-		chDesc.RecvBufferCapacity = defaultRecvBufferCapacity
+	if d.RecvBufferCapacity == 0 {
+		d.RecvBufferCapacity = defaultRecvBufferCapacity
 	}
-	if chDesc.RecvMessageCapacity == 0 {
-		chDesc.RecvMessageCapacity = defaultRecvMessageCapacity
+	if d.RecvMessageCapacity == 0 {
+		d.RecvMessageCapacity = defaultRecvMessageCapacity
 	}
-	filled = chDesc
+	filled = d
 	return filled
 }

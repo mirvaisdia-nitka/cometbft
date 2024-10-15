@@ -30,7 +30,7 @@ import (
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/pex"
-	tcp "github.com/cometbft/cometbft/p2p/transport/tcp"
+	"github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	sm "github.com/cometbft/cometbft/state"
@@ -410,7 +410,6 @@ func createConsensusReactor(config *cfg.Config,
 
 func createTransport(
 	config *cfg.Config,
-	nodeInfo ni.NodeInfo,
 	nodeKey *nodekey.NodeKey,
 	proxyApp proxy.AppConns,
 ) (

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/config"
-	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtnet "github.com/cometbft/cometbft/internal/net"
 	"github.com/cometbft/cometbft/libs/log"
@@ -151,7 +150,7 @@ func ConnectStarSwitches(c int) func([]*Switch, int, int) {
 }
 
 func (sw *Switch) addPeerWithConnection(conn net.Conn) error {
-	pc, err := testInboundPeerConn(conn, sw.config, sw.nodeKey.PrivKey)
+	pc, err := testInboundPeerConn(conn, sw.config)
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			sw.Logger.Error("Error closing connection", "err", err)
@@ -159,11 +158,11 @@ func (sw *Switch) addPeerWithConnection(conn net.Conn) error {
 		return err
 	}
 
-	handshaker := NewHandshaker(sw.nodeInfo)
-	ni, err := handshaker.Handshake(conn, time.Second)
+	h := newHandshaker(sw.nodeInfo)
+	ni, err := h.Handshake(conn, time.Second)
 	if err != nil {
-		if err := conn.Close(); err != nil {
-			sw.Logger.Error("Error closing connection", "err", err)
+		if cErr := conn.Close(); cErr != nil {
+			sw.Logger.Error("Error closing connection", "err", cErr)
 		}
 		return err
 	}
@@ -235,16 +234,16 @@ func MakeSwitch(
 func testInboundPeerConn(
 	conn net.Conn,
 	config *config.P2PConfig,
-	ourNodePrivKey crypto.PrivKey,
+	// ourNodePrivKey crypto.PrivKey,
 ) (peerConn, error) {
-	return testPeerConn(conn, config, false, false, ourNodePrivKey, nil)
+	return testPeerConn(conn, config, false, false, nil)
 }
 
 func testPeerConn(
 	rawConn net.Conn,
 	cfg *config.P2PConfig,
 	outbound, persistent bool,
-	ourNodePrivKey crypto.PrivKey,
+	// _ourNodePrivKey crypto.PrivKey,
 	socketAddr *na.NetAddress,
 ) (pc peerConn, err error) {
 	conn := rawConn
@@ -316,17 +315,13 @@ func (mockNodeInfo) CompatibleWith(ni.NodeInfo) error                       { re
 func (mockNodeInfo) Handshake(net.Conn, time.Duration) (ni.NodeInfo, error) { return nil, nil }
 
 func testNodeInfo(id nodekey.ID, name string) ni.NodeInfo {
-	return testNodeInfoWithNetwork(id, name, "testing")
-}
-
-func testNodeInfoWithNetwork(id nodekey.ID, name, network string) ni.NodeInfo {
 	const testCh = 0x01
 
 	return ni.DefaultNodeInfo{
 		ProtocolVersion: ni.NewProtocolVersion(0, 0, 0),
 		DefaultNodeID:   id,
 		ListenAddr:      fmt.Sprintf("127.0.0.1:%d", getFreePort()),
-		Network:         network,
+		Network:         "testing",
 		Version:         "1.2.3-rc0-deadbeef",
 		Channels:        []byte{testCh},
 		Moniker:         name,

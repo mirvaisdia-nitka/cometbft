@@ -92,8 +92,8 @@ func createOutboundPeerAndPerformHandshake(
 	msgTypeByChID := map[byte]proto.Message{
 		testCh: &p2p.Message{},
 	}
-	pk := ed25519.GenPrivKey()
-	pc, err := testOutboundPeerConn(addr, config, false, pk)
+	// pk := ed25519.GenPrivKey()
+	pc, err := testOutboundPeerConn(addr, config, false)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func testOutboundPeerConn(
 	addr *na.NetAddress,
 	config *config.P2PConfig,
 	persistent bool,
-	ourNodePrivKey crypto.PrivKey,
+	// ourNodePrivKey crypto.PrivKey,
 ) (peerConn, error) {
 	var pc peerConn
 	conn, err := testDial(addr, config)
@@ -133,7 +133,7 @@ func testOutboundPeerConn(
 		return pc, fmt.Errorf("error creating peer: %w", err)
 	}
 
-	pc, err = testPeerConn(conn, config, true, persistent, ourNodePrivKey, addr)
+	pc, err = testPeerConn(conn, config, true, persistent, addr)
 	if err != nil {
 		if cerr := conn.Close(); cerr != nil {
 			return pc, fmt.Errorf("%v: %w", cerr.Error(), err)
@@ -195,7 +195,7 @@ func (rp *remotePeer) Dial(addr *na.NetAddress) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	pc, err := testInboundPeerConn(conn, rp.Config, rp.PrivKey)
+	pc, err := testInboundPeerConn(conn, rp.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (rp *remotePeer) accept() {
 			return
 		}
 
-		pc, err := testInboundPeerConn(conn, rp.Config, rp.PrivKey)
+		pc, err := testInboundPeerConn(conn, rp.Config)
 		if err != nil {
 			golog.Fatalf("Failed to create a peer: %+v", err)
 		}

@@ -139,7 +139,7 @@ func NewNetAddressIPPort(ip net.IP, port uint16) *NetAddress {
 }
 
 // NetAddressFromProto converts a Protobuf NetAddress into a native struct.
-func NetAddressFromProto(pb tmp2p.NetAddress) (*NetAddress, error) {
+func NetAddressFromProto(pb tmp2p.NetAddress) (*NetAddress, error) { //nolint:revive
 	ip := net.ParseIP(pb.IP)
 	if ip == nil {
 		return nil, ErrNetAddressInvalid{Addr: pb.IP, Err: ErrInvalidIP}

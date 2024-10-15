@@ -51,7 +51,7 @@ func (sd testStreamDescriptor) StreamID() byte {
 	return sd.ID
 }
 
-func (sd testStreamDescriptor) MessageType() proto.Message {
+func (testStreamDescriptor) MessageType() proto.Message {
 	return &p2pproto.PexAddrs{}
 }
 

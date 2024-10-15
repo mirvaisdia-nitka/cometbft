@@ -100,7 +100,7 @@ type handshaker struct {
 	ourNodeInfo ni.NodeInfo
 }
 
-func NewHandshaker(ourNodeInfo ni.NodeInfo) *handshaker {
+func newHandshaker(ourNodeInfo ni.NodeInfo) *handshaker {
 	return &handshaker{
 		ourNodeInfo: ourNodeInfo,
 	}
