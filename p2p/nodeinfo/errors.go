@@ -7,9 +7,7 @@ import (
 	"github.com/cometbft/cometbft/libs/bytes"
 )
 
-var (
-	ErrNoNodeInfo = errors.New("no node info found")
-)
+var ErrNoNodeInfo = errors.New("no node info found")
 
 type ErrInvalidNodeVersion struct {
 	Version string

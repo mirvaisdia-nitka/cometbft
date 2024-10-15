@@ -72,6 +72,6 @@ func (mp *Peer) Set(key string, value any) {
 func (mp *Peer) RemoteIP() net.IP           { return mp.ip }
 func (mp *Peer) SocketAddr() *na.NetAddress { return mp.addr }
 func (mp *Peer) RemoteAddr() net.Addr       { return &net.TCPAddr{IP: mp.ip, Port: 8800} }
-func (*Peer) CloseConn() error              { return nil }
+func (*Peer) Conn() net.Conn                { return nil }
 func (*Peer) SetRemovalFailed()             {}
 func (*Peer) GetRemovalFailed() bool        { return false }

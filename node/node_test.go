@@ -30,6 +30,7 @@ import (
 	mempl "github.com/cometbft/cometbft/mempool"
 	"github.com/cometbft/cometbft/p2p"
 	p2pmock "github.com/cometbft/cometbft/p2p/mock"
+	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 	"github.com/cometbft/cometbft/privval"
@@ -152,7 +153,7 @@ func TestNodeSetAppVersion(t *testing.T) {
 	assert.Equal(t, state.Version.Consensus.App, appVersion)
 
 	// check version is set in node info
-	assert.Equal(t, n.nodeInfo.(p2p.DefaultNodeInfo).ProtocolVersion.App, appVersion)
+	assert.Equal(t, n.nodeInfo.(ni.DefaultNodeInfo).ProtocolVersion.App, appVersion)
 }
 
 func TestPprofServer(t *testing.T) {
@@ -474,8 +475,8 @@ func TestNodeNewNodeCustomReactors(t *testing.T) {
 	defer os.RemoveAll(config.RootDir)
 
 	cr := p2pmock.NewReactor()
-	cr.Channels = []*conn.ChannelDescriptor{
-		{
+	cr.Channels = []p2p.StreamDescriptor{
+		&conn.ChannelDescriptor{
 			ID:                  byte(0x31),
 			Priority:            5,
 			SendQueueCapacity:   100,
@@ -512,9 +513,9 @@ func TestNodeNewNodeCustomReactors(t *testing.T) {
 	assert.True(t, customBlocksyncReactor.IsRunning())
 	assert.Equal(t, customBlocksyncReactor, n.Switch().Reactor("BLOCKSYNC"))
 
-	channels := n.NodeInfo().(p2p.DefaultNodeInfo).Channels
+	channels := n.NodeInfo().(ni.DefaultNodeInfo).Channels
 	assert.Contains(t, channels, mempl.MempoolChannel)
-	assert.Contains(t, channels, cr.Channels[0].ID)
+	assert.Contains(t, channels, cr.Channels[0].StreamID())
 }
 
 // Simple test to confirm that an existing genesis file will be deleted from the DB

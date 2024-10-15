@@ -17,6 +17,7 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/p2p/mock"
+	na "github.com/cometbft/cometbft/p2p/netaddress"
 	"github.com/cometbft/cometbft/types"
 )
 
@@ -214,7 +215,7 @@ func TestCheckSeeds(t *testing.T) {
 	peerSwitch.Stop() //nolint:errcheck // ignore for tests
 
 	// 2. create seed
-	seed := testCreateSeed(dir, 1, []*p2p.NetAddress{}, []*p2p.NetAddress{})
+	seed := testCreateSeed(dir, 1, []*na.NetAddress{}, []*na.NetAddress{})
 
 	// 3. test create peer with online seed works
 	peerSwitch = testCreatePeerWithSeed(dir, 2, seed)
@@ -252,7 +253,7 @@ func TestPEXReactorUsesSeedsIfNeeded(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// 1. create seed
-	seed := testCreateSeed(dir, 0, []*p2p.NetAddress{}, []*p2p.NetAddress{})
+	seed := testCreateSeed(dir, 0, []*na.NetAddress{}, []*na.NetAddress{})
 	require.NoError(t, seed.Start())
 	defer seed.Stop() //nolint:errcheck // ignore for tests
 
@@ -275,7 +276,7 @@ func TestConnectionSpeedForPeerReceivedFromSeed(t *testing.T) {
 	cfg.MaxNumOutboundPeers = 2
 
 	var id int
-	var knownAddrs []*p2p.NetAddress
+	var knownAddrs []*na.NetAddress
 
 	// 1. Create some peers
 	for id = 0; id < cfg.MaxNumOutboundPeers+1; id++ {
@@ -335,7 +336,7 @@ func TestPEXReactorSeedMode(t *testing.T) {
 	defer peerSwitch.Stop() //nolint:errcheck // ignore for tests
 
 	// 1. Test crawlPeers dials the peer
-	pexR.crawlPeers([]*p2p.NetAddress{peerSwitch.NetAddress()})
+	pexR.crawlPeers([]*na.NetAddress{peerSwitch.NetAddress()})
 	assert.Equal(t, 1, sw.Peers().Size())
 	assert.True(t, sw.Peers().Has(peerSwitch.NodeInfo().ID()))
 
@@ -377,7 +378,7 @@ func TestPEXReactorDoesNotDisconnectFromPersistentPeerInSeedMode(t *testing.T) {
 	require.NoError(t, err)
 
 	// 1. Test crawlPeers dials the peer
-	pexR.crawlPeers([]*p2p.NetAddress{peerSwitch.NetAddress()})
+	pexR.crawlPeers([]*na.NetAddress{peerSwitch.NetAddress()})
 	assert.Equal(t, 1, sw.Peers().Size())
 	assert.True(t, sw.Peers().Has(peerSwitch.NodeInfo().ID()))
 
@@ -412,7 +413,7 @@ func TestPEXReactorDialsPeerUpToMaxAttemptsInSeedMode(t *testing.T) {
 
 	// imitate maxAttemptsToDial reached
 	pexR.attemptsToDial.Store(addr.DialString(), _attemptsToDial{maxAttemptsToDial + 1, time.Now()})
-	pexR.crawlPeers([]*p2p.NetAddress{addr})
+	pexR.crawlPeers([]*na.NetAddress{addr})
 
 	assert.False(t, book.HasAddress(addr))
 }
@@ -630,7 +631,7 @@ func testCreateDefaultPeer(dir string, id int) *p2p.Switch {
 
 // Creates a seed which knows about the provided addresses / source address pairs.
 // Starting and stopping the seed is left to the caller.
-func testCreateSeed(dir string, id int, knownAddrs, srcAddrs []*p2p.NetAddress) *p2p.Switch {
+func testCreateSeed(dir string, id int, knownAddrs, srcAddrs []*na.NetAddress) *p2p.Switch {
 	seed := p2p.MakeSwitch(
 		cfg,
 		id,

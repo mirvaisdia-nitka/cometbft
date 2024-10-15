@@ -24,7 +24,6 @@ import (
 	lrpc "github.com/cometbft/cometbft/light/rpc"
 	dbs "github.com/cometbft/cometbft/light/store/db"
 	"github.com/cometbft/cometbft/node"
-	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
@@ -241,7 +240,7 @@ func startSigner(cfg *Config) error {
 	return nil
 }
 
-func setupNode() (*config.Config, log.Logger, *p2p.NodeKey, error) {
+func setupNode() (*config.Config, log.Logger, *nodekey.NodeKey, error) {
 	var cmtcfg *config.Config
 
 	home := os.Getenv("CMTHOME")

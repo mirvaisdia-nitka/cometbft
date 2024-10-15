@@ -3,8 +3,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/cometbft/cometbft/p2p/nodekey"
 	"github.com/spf13/cobra"
+
+	"github.com/cometbft/cometbft/p2p/nodekey"
 )
 
 // ShowNodeIDCmd dumps node's ID to the standard output.

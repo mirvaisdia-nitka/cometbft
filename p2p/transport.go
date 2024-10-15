@@ -3,8 +3,9 @@ package p2p
 import (
 	"net"
 
-	na "github.com/cometbft/cometbft/p2p/netaddress"
 	"github.com/cosmos/gogoproto/proto"
+
+	na "github.com/cometbft/cometbft/p2p/netaddress"
 )
 
 // peerConfig is used to bundle data we need to fully setup a Peer with an

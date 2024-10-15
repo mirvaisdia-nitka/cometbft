@@ -280,9 +280,11 @@ func (book *AddrBookMock) AddAddress(addr *na.NetAddress, _ *na.NetAddress) erro
 	book.Addrs[addr.String()] = struct{}{}
 	return nil
 }
+
 func (book *AddrBookMock) AddOurAddress(addr *na.NetAddress) {
 	book.OurAddrs[addr.String()] = struct{}{}
 }
+
 func (book *AddrBookMock) OurAddress(addr *na.NetAddress) bool {
 	_, ok := book.OurAddrs[addr.String()]
 	return ok
