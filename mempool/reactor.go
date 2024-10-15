@@ -86,7 +86,7 @@ func (memR *Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			ID:                  MempoolChannel,
 			Priority:            5,
 			RecvMessageCapacity: batchMsg.Size(),
-			MessageType:         &protomem.Message{},
+			MessageTypeI:        &protomem.Message{},
 		},
 	}
 }

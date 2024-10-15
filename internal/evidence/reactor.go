@@ -58,7 +58,7 @@ func (*Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			ID:                  EvidenceChannel,
 			Priority:            6,
 			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &cmtproto.EvidenceList{},
+			MessageTypeI:        &cmtproto.EvidenceList{},
 		},
 	}
 }

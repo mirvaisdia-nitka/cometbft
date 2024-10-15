@@ -71,14 +71,14 @@ func (*Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			Priority:            5,
 			SendQueueCapacity:   10,
 			RecvMessageCapacity: snapshotMsgSize,
-			MessageType:         &ssproto.Message{},
+			MessageTypeI:        &ssproto.Message{},
 		},
 		&tcpconn.ChannelDescriptor{
 			ID:                  ChunkChannel,
 			Priority:            3,
 			SendQueueCapacity:   10,
 			RecvMessageCapacity: chunkMsgSize,
-			MessageType:         &ssproto.Message{},
+			MessageTypeI:        &ssproto.Message{},
 		},
 	}
 }

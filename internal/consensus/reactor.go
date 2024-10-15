@@ -161,7 +161,7 @@ func (*Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			Priority:            6,
 			SendQueueCapacity:   100,
 			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &cmtcons.Message{},
+			MessageTypeI:        &cmtcons.Message{},
 		},
 		&tcpconn.ChannelDescriptor{
 			ID: DataChannel, // maybe split between gossiping current block and catchup stuff
@@ -170,7 +170,7 @@ func (*Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			SendQueueCapacity:   100,
 			RecvBufferCapacity:  50 * 4096,
 			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &cmtcons.Message{},
+			MessageTypeI:        &cmtcons.Message{},
 		},
 		&tcpconn.ChannelDescriptor{
 			ID:                  VoteChannel,
@@ -178,7 +178,7 @@ func (*Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			SendQueueCapacity:   100,
 			RecvBufferCapacity:  100 * 100,
 			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &cmtcons.Message{},
+			MessageTypeI:        &cmtcons.Message{},
 		},
 		&tcpconn.ChannelDescriptor{
 			ID:                  VoteSetBitsChannel,
@@ -186,7 +186,7 @@ func (*Reactor) StreamDescriptors() []p2p.StreamDescriptor {
 			SendQueueCapacity:   2,
 			RecvBufferCapacity:  1024,
 			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &cmtcons.Message{},
+			MessageTypeI:        &cmtcons.Message{},
 		},
 	}
 }
