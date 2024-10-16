@@ -81,14 +81,11 @@ func newPeerConn(
 	}
 }
 
-// ID only exists for SecretConnection.
+// ID returns the peer's ID.
 //
-// If the connection is not a SecretConnection, it returns "undefined".
+// Only used in tests.
 func (pc peerConn) ID() nodekey.ID {
-	if sc, ok := pc.conn.(*tcpconn.SecretConnection); ok {
-		return nodekey.PubKeyToID(sc.RemotePubKey())
-	}
-	return nodekey.ID("undefined")
+	return pc.socketAddr.ID
 }
 
 // Return the IP from the connection RemoteAddr.
@@ -447,13 +444,14 @@ func createMConnection(
 		onPeerError(p, r)
 	}
 
-	chDescs := make([]*tcpconn.ChannelDescriptor, len(streams))
-	for i, stream := range streams {
+	chDescs := make([]*tcpconn.ChannelDescriptor, 0, len(streams))
+	for _, stream := range streams {
 		var ok bool
-		chDescs[i], ok = stream.(*tcpconn.ChannelDescriptor)
+		d, ok := stream.(*tcpconn.ChannelDescriptor)
 		if !ok {
-			panic("StreamDescriptor is not a ChannelDescriptor")
+			continue
 		}
+		chDescs = append(chDescs, d)
 	}
 
 	return tcpconn.NewMConnectionWithConfig(

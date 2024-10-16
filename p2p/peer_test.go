@@ -22,6 +22,7 @@ import (
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/nodekey"
 	cmtconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
+	tcpconn "github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
 const testCh = 0x01
@@ -85,25 +86,38 @@ func createOutboundPeerAndPerformHandshake(
 	config *config.P2PConfig,
 	mConfig cmtconn.MConnConfig,
 ) (*peer, error) {
-	chDescs := []StreamDescriptor{
-		testStreamDescriptor{ID: testCh},
-	}
-	reactorsByCh := map[byte]Reactor{testCh: NewTestReactor(chDescs, true)}
-	msgTypeByChID := map[byte]proto.Message{
-		testCh: &p2p.Message{},
-	}
-	// pk := ed25519.GenPrivKey()
+	// create outbound peer connection
 	pc, err := testOutboundPeerConn(addr, config, false)
 	if err != nil {
 		return nil, err
 	}
-	timeout := 1 * time.Second
-	ourNodeInfo := testNodeInfo(addr.ID, "host_peer")
-	peerNodeInfo, err := handshake(ourNodeInfo, pc.conn, timeout)
+
+	// create dummy node info and perform handshake
+	var (
+		timeout     = 1 * time.Second
+		ourNodeID   = nodekey.PubKeyToID(ed25519.GenPrivKey().PubKey())
+		ourNodeInfo = testNodeInfo(ourNodeID, "host_peer")
+	)
+	h := newHandshaker(ourNodeInfo)
+	peerNodeInfo, err := h.Handshake(pc.conn, timeout)
 	if err != nil {
 		return nil, err
 	}
 
+	// create peer
+	var (
+		chDescs = []StreamDescriptor{
+			&tcpconn.ChannelDescriptor{
+				ID:           testCh,
+				Priority:     1,
+				MessageTypeI: &p2p.Message{},
+			},
+		}
+		reactorsByCh  = map[byte]Reactor{testCh: NewTestReactor(chDescs, true)}
+		msgTypeByChID = map[byte]proto.Message{
+			testCh: &p2p.Message{},
+		}
+	)
 	p := newPeer(pc, mConfig, peerNodeInfo, reactorsByCh, msgTypeByChID, chDescs, func(_ Peer, _ any) {})
 	p.SetLogger(log.TestingLogger().With("peer", addr))
 	return p, nil
@@ -191,19 +205,17 @@ func (rp *remotePeer) Stop() {
 }
 
 func (rp *remotePeer) Dial(addr *na.NetAddress) (net.Conn, error) {
-	conn, err := addr.DialTimeout(1 * time.Second)
+	pc, err := testOutboundPeerConn(addr, rp.Config, false)
 	if err != nil {
 		return nil, err
 	}
-	pc, err := testInboundPeerConn(conn, rp.Config)
+
+	h := newHandshaker(rp.nodeInfo())
+	_, err = h.Handshake(pc.conn, time.Second)
 	if err != nil {
 		return nil, err
 	}
-	_, err = handshake(rp.nodeInfo(), pc.conn, time.Second)
-	if err != nil {
-		return nil, err
-	}
-	return conn, err
+	return pc.conn, err
 }
 
 func (rp *remotePeer) accept() {
@@ -221,12 +233,15 @@ func (rp *remotePeer) accept() {
 
 		pc, err := testInboundPeerConn(conn, rp.Config)
 		if err != nil {
+			_ = conn.Close()
 			golog.Fatalf("Failed to create a peer: %+v", err)
 		}
 
-		_, err = handshake(rp.nodeInfo(), pc.conn, time.Second)
+		h := newHandshaker(rp.nodeInfo())
+		_, err = h.Handshake(pc.conn, time.Second)
 		if err != nil {
-			golog.Fatalf("Failed to perform handshake: %+v", err)
+			_ = pc.conn.Close()
+			golog.Printf("Failed to perform handshake: %+v", err)
 		}
 
 		conns = append(conns, conn)
@@ -234,13 +249,9 @@ func (rp *remotePeer) accept() {
 }
 
 func (rp *remotePeer) nodeInfo() ni.NodeInfo {
-	return ni.DefaultNodeInfo{
-		ProtocolVersion: ni.NewProtocolVersion(0, 0, 0),
-		DefaultNodeID:   rp.Addr().ID,
-		ListenAddr:      rp.listener.Addr().String(),
-		Network:         "testing",
-		Version:         "1.2.3-rc0-deadbeef",
-		Channels:        rp.channels,
-		Moniker:         "remote_peer",
-	}
+	la := rp.listener.Addr().String()
+	nodeInfo := testNodeInfo(rp.ID(), fmt.Sprintf("remote_peer_%s", la))
+	nodeInfo.ListenAddr = la
+	nodeInfo.Channels = rp.channels
+	return nodeInfo
 }

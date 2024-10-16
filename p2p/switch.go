@@ -636,7 +636,7 @@ func (sw *Switch) acceptRoutine() {
 		conn, addr, err := sw.transport.Accept()
 		if err != nil {
 			switch err := err.(type) {
-			case ErrRejected:
+			case tcp.ErrRejected:
 				if err.IsSelf() {
 					// Remove the given address from the address book and add to our addresses
 					// to avoid dialing in the future.
@@ -683,9 +683,9 @@ func (sw *Switch) acceptRoutine() {
 
 		h := newHandshaker(sw.nodeInfo)
 		nodeInfo, err := h.Handshake(conn, sw.config.HandshakeTimeout)
-		if err != nil && errors.Is(err, ErrRejected{}) {
-			errRejected := err.(ErrRejected)
-			if errRejected.IsSelf() {
+		if err != nil {
+			errRejected, ok := err.(ErrRejected)
+			if ok && errRejected.IsSelf() {
 				// Remove the given address from the address book and add to our addresses
 				// to avoid dialing in the future.
 				addr := errRejected.Addr()
@@ -766,7 +766,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 
 	conn, err := sw.transport.Dial(*addr)
 	if err != nil {
-		if e, ok := err.(ErrRejected); ok {
+		if e, ok := err.(tcp.ErrRejected); ok {
 			if e.IsSelf() {
 				// Remove the given address from the address book and add to our addresses
 				// to avoid dialing in the future.
@@ -788,9 +788,9 @@ func (sw *Switch) addOutboundPeerWithConfig(
 
 	h := newHandshaker(sw.nodeInfo)
 	nodeInfo, err := h.Handshake(conn, sw.config.HandshakeTimeout)
-	if err != nil && errors.Is(err, ErrRejected{}) {
-		errRejected := err.(ErrRejected)
-		if errRejected.IsSelf() {
+	if err != nil {
+		errRejected, ok := err.(ErrRejected)
+		if ok && errRejected.IsSelf() {
 			// Remove the given address from the address book and add to our addresses
 			// to avoid dialing in the future.
 			sw.addrBook.RemoveAddress(addr)

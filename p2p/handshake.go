@@ -172,7 +172,8 @@ func handshake(ourNodeInfo ni.NodeInfo, c net.Conn, timeout time.Duration) (peer
 	)
 
 	go func(errc chan<- error, c net.Conn) {
-		_, err := protoio.NewDelimitedWriter(c).WriteMsg(ourNodeInfo.(ni.DefaultNodeInfo).ToProto())
+		ourNodeInfoProto := ourNodeInfo.(ni.DefaultNodeInfo).ToProto()
+		_, err := protoio.NewDelimitedWriter(c).WriteMsg(ourNodeInfoProto)
 		errc <- err
 	}(errc, c)
 	go func(errc chan<- error, c net.Conn) {

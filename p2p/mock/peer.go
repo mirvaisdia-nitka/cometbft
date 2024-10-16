@@ -19,6 +19,7 @@ type Peer struct {
 	addr                 *na.NetAddress
 	kv                   map[string]any
 	Outbound, Persistent bool
+	server, client       net.Conn
 }
 
 // NewPeer creates and starts a new mock peer. If the ip
@@ -32,11 +33,14 @@ func NewPeer(ip net.IP) *Peer {
 	}
 	nodeKey := nodekey.NodeKey{PrivKey: ed25519.GenPrivKey()}
 	netAddr.ID = nodeKey.ID()
+	server, client := net.Pipe()
 	mp := &Peer{
-		ip:   ip,
-		id:   nodeKey.ID(),
-		addr: netAddr,
-		kv:   make(map[string]any),
+		ip:     ip,
+		id:     nodeKey.ID(),
+		addr:   netAddr,
+		kv:     make(map[string]any),
+		server: server,
+		client: client,
 	}
 	mp.BaseService = service.NewBaseService(nil, "MockPeer", mp)
 	if err := mp.Start(); err != nil {
@@ -45,7 +49,11 @@ func NewPeer(ip net.IP) *Peer {
 	return mp
 }
 
-func (mp *Peer) FlushStop()               { mp.Stop() } //nolint:errcheck //ignore error
+func (mp *Peer) FlushStop() { mp.Stop() } //nolint:errcheck //ignore error
+func (mp *Peer) OnStop() {
+	mp.server.Close()
+	mp.client.Close()
+}
 func (*Peer) HasChannel(_ byte) bool      { return true }
 func (*Peer) TrySend(_ p2p.Envelope) bool { return true }
 func (*Peer) Send(_ p2p.Envelope) bool    { return true }
@@ -72,6 +80,6 @@ func (mp *Peer) Set(key string, value any) {
 func (mp *Peer) RemoteIP() net.IP           { return mp.ip }
 func (mp *Peer) SocketAddr() *na.NetAddress { return mp.addr }
 func (mp *Peer) RemoteAddr() net.Addr       { return &net.TCPAddr{IP: mp.ip, Port: 8800} }
-func (*Peer) Conn() net.Conn                { return nil }
+func (mp *Peer) Conn() net.Conn             { return mp.server }
 func (*Peer) SetRemovalFailed()             {}
 func (*Peer) GetRemovalFailed() bool        { return false }

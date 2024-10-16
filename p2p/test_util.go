@@ -12,7 +12,6 @@ import (
 	na "github.com/cometbft/cometbft/p2p/netaddress"
 	ni "github.com/cometbft/cometbft/p2p/nodeinfo"
 	"github.com/cometbft/cometbft/p2p/nodekey"
-	"github.com/cometbft/cometbft/p2p/transport/tcp"
 	"github.com/cometbft/cometbft/p2p/transport/tcp/conn"
 )
 
@@ -210,13 +209,13 @@ func MakeSwitch(
 	}
 	nodeInfo := testNodeInfo(nk.ID(), fmt.Sprintf("node%d", i))
 	addr, err := na.NewNetAddressString(
-		na.IDAddressString(nk.ID(), nodeInfo.(ni.DefaultNodeInfo).ListenAddr),
+		na.IDAddressString(nk.ID(), nodeInfo.ListenAddr),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	t := tcp.NewMultiplexTransport(nk, MConnConfig(cfg))
+	t := &mockTransport{}
 
 	if err := t.Listen(*addr); err != nil {
 		panic(err)
@@ -314,7 +313,7 @@ func (mockNodeInfo) Validate() error                                        { re
 func (mockNodeInfo) CompatibleWith(ni.NodeInfo) error                       { return nil }
 func (mockNodeInfo) Handshake(net.Conn, time.Duration) (ni.NodeInfo, error) { return nil, nil }
 
-func testNodeInfo(id nodekey.ID, name string) ni.NodeInfo {
+func testNodeInfo(id nodekey.ID, name string) ni.DefaultNodeInfo {
 	const testCh = 0x01
 
 	return ni.DefaultNodeInfo{
